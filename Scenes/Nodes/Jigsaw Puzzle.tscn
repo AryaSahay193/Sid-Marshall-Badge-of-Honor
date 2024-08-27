@@ -1,0 +1,83 @@
+[gd_scene load_steps=16 format=3 uid="uid://cqgt7ru5767rn"]
+
+[ext_resource type="Texture2D" uid="uid://bvskbp76twmns" path="res://Miscallaneous/Collectibles/Jigsaw Puzzles/Jigsaw Puzzle (Red) - 01.png" id="1_r2t57"]
+[ext_resource type="Texture2D" uid="uid://doc1nsgor5pkv" path="res://Miscallaneous/Collectibles/Jigsaw Puzzles/Jigsaw Puzzle (Red) - 02.png" id="2_aawaq"]
+[ext_resource type="Texture2D" uid="uid://dpr6ckh4ou6c3" path="res://Miscallaneous/Collectibles/Jigsaw Puzzles/Jigsaw Puzzle (Red) - 03.png" id="3_1dlso"]
+[ext_resource type="Texture2D" uid="uid://cl7se4n2bjhis" path="res://Miscallaneous/Collectibles/Jigsaw Puzzles/Jigsaw Puzzle (Red) - 04.png" id="4_u683g"]
+[ext_resource type="Texture2D" uid="uid://fefi27cffxob" path="res://Miscallaneous/Collectibles/Jigsaw Puzzles/Jigsaw Puzzle (Red) - 05.png" id="5_4gleu"]
+[ext_resource type="Texture2D" uid="uid://o03ud02l03gv" path="res://Miscallaneous/Collectibles/Jigsaw Puzzles/Jigsaw Puzzle (Red) - 06.png" id="6_era7l"]
+[ext_resource type="Texture2D" uid="uid://b7vmte5kba83h" path="res://Miscallaneous/Collectibles/Jigsaw Puzzles/Jigsaw Puzzle (Red) - 07.png" id="7_ggarg"]
+[ext_resource type="Texture2D" uid="uid://buqrcqvln53fp" path="res://Miscallaneous/Collectibles/Jigsaw Puzzles/Jigsaw Puzzle (Red) - 08.png" id="8_gn0dp"]
+[ext_resource type="Texture2D" uid="uid://byp43papi3pyj" path="res://Miscallaneous/Collectibles/Jigsaw Puzzles/Jigsaw Puzzle (Red) - 09.png" id="9_ur5y5"]
+[ext_resource type="Texture2D" uid="uid://bpf74c4qd308u" path="res://Miscallaneous/Collectibles/Jigsaw Puzzles/Jigsaw Puzzle (Red) - 10.png" id="10_pbsrp"]
+[ext_resource type="Texture2D" uid="uid://cv7k10wj3r35p" path="res://Miscallaneous/Collectibles/Jigsaw Puzzles/Jigsaw Puzzle (Red) - 11.png" id="11_pxybu"]
+[ext_resource type="Texture2D" uid="uid://cvckr8vxg7rf4" path="res://Miscallaneous/Collectibles/Jigsaw Puzzles/Jigsaw Puzzle (Red) - 12.png" id="12_hodcx"]
+[ext_resource type="Script" path="res://Scripts/jigsawpuzzle.cs" id="13_uwncn"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_uasos"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("1_r2t57")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_aawaq")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_1dlso")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_u683g")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_4gleu")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_era7l")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_ggarg")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_gn0dp")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_ur5y5")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_pbsrp")
+}, {
+"duration": 1.0,
+"texture": ExtResource("11_pxybu")
+}, {
+"duration": 1.0,
+"texture": ExtResource("12_hodcx")
+}],
+"loop": true,
+"name": &"Spinning",
+"speed": 12.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_em8yy"]
+
+[node name="Jigsaw Puzzle" type="StaticBody2D" groups=["Collectible"]]
+z_index = 4
+collision_layer = 2
+collision_mask = 2
+input_pickable = true
+
+[node name="Jigsaw Collectible" type="AnimatedSprite2D" parent="."]
+light_mask = 2050
+visibility_layer = 2
+position = Vector2(361, -53)
+sprite_frames = SubResource("SpriteFrames_uasos")
+animation = &"Spinning"
+autoplay = "Spinning"
+frame_progress = 0.569226
+script = ExtResource("13_uwncn")
+
+[node name="Jigsaw Collision" type="CollisionShape2D" parent="."]
+light_mask = 2
+visibility_layer = 2
+position = Vector2(10, -131)
+shape = SubResource("RectangleShape2D_em8yy")
