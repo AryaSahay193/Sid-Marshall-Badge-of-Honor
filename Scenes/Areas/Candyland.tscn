@@ -1,0 +1,74 @@
+[gd_scene load_steps=9 format=3 uid="uid://c1683popyf8k5"]
+
+[ext_resource type="Script" path="res://Scripts/Ladder.cs" id="14_7tkqm"]
+[ext_resource type="Texture2D" uid="uid://cl5eo5mnqykpp" path="res://Tilesets/Ladder Tileset.png" id="15_iew4h"]
+[ext_resource type="PackedScene" uid="uid://de8qvu5se4582" path="res://Scenes/Building Blocks/Tilesets.tscn" id="16_45m74"]
+[ext_resource type="PackedScene" uid="uid://dlfs3mt4pxbof" path="res://Scenes/Building Blocks/Sid Marshall.tscn" id="19_ih57l"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ygq8q"]
+texture = ExtResource("15_iew4h")
+0:0/0 = 0
+1:0/0 = 0
+0:1/0 = 0
+1:1/0 = 0
+0:2/0 = 0
+1:2/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_f2pt6"]
+sources/0 = SubResource("TileSetAtlasSource_ygq8q")
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_8xe2i"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_r0tae"]
+
+[node name="World" type="Node2D"]
+
+[node name="ParallaxBackground" type="ParallaxBackground" parent="."]
+
+[node name="Ladders" type="Area2D" parent="." groups=["Sid Marshall"]]
+z_index = 4
+y_sort_enabled = true
+collision_layer = 4
+collision_mask = 4
+input_pickable = false
+script = ExtResource("14_7tkqm")
+
+[node name="Ladder Tiles" type="TileMap" parent="Ladders"]
+light_mask = 1024
+visibility_layer = 1024
+position = Vector2(25, 11)
+tile_set = SubResource("TileSet_f2pt6")
+format = 2
+layer_0/tile_data = PackedInt32Array(393317, 0, 2, 393318, 65536, 2, 327781, 0, 1, 262245, 0, 1, 196709, 0, 1, 131173, 0, 1, 65637, 0, 1, 101, 0, 1, -65435, 0, 1, -130971, 0, 1, -196507, 0, 1, -262043, 0, 0, -262042, 65536, 0, -196506, 65536, 1, -130970, 65536, 1, -65434, 65536, 1, 102, 65536, 1, 65638, 65536, 1, 131174, 65536, 1, 196710, 65536, 1, 262246, 65536, 1, 327782, 65536, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ladders"]
+visible = false
+position = Vector2(25, 11)
+shape = SubResource("RectangleShape2D_8xe2i")
+
+[node name="Doors" type="Area2D" parent="." groups=["Sid Marshall"]]
+z_index = 4
+y_sort_enabled = true
+position = Vector2(25, 11)
+collision_layer = 4
+collision_mask = 4
+
+[node name="Door Tiles" type="TileMap" parent="Doors"]
+tile_set = SubResource("TileSet_f2pt6")
+format = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Doors"]
+visible = false
+position = Vector2(14, -16)
+shape = SubResource("RectangleShape2D_r0tae")
+
+[node name="All Tilesets" parent="." instance=ExtResource("16_45m74")]
+position = Vector2(50, 22)
+
+[node name="Sid Marshall" parent="." instance=ExtResource("19_ih57l")]
+position = Vector2(266, -106)
+
+[connection signal="body_entered" from="Ladders" to="Ladders" method="OnBodyEntered"]
+[connection signal="body_exited" from="Ladders" to="Ladders" method="OnBodyExited"]
+[connection signal="body_exited" from="Doors" to="Doors" method="OnBodyExited"]
+[connection signal="tree_exiting" from="Doors" to="Doors" method="_on_tree_exiting"]
