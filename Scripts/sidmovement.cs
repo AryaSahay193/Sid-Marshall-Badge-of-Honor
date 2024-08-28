@@ -1,19 +1,22 @@
-using System.Security.Cryptography.X509Certificates;
 using Godot;
 
+/*Remember, masks means you detect objects
+Layers mean that objects detect you.
+*/
 public partial class sidmovement : CharacterBody2D {
 	//General variables. I just kept everything divisible by 13 just to stay consistent.
-	private float walkingSpeed = 65.0f; //05 * 13
-	private float runningSpeed = 156.0f; //12 * 13
-	private float JumpingSpeed = -260.0f; //-(20 * 13)
-	public float gravity = 832.0f; //64 * 13
-	private float acceleration = 0.9f; // 0.0070 * 13, rounded
-	private float friction = 0.03f; // 0.0023 * 13, rounded
+	private float walkingSpeed = 70.0f;
+	private float runningSpeed = 150.0f;
+	private float JumpingSpeed = -300.0f;
+	private float slidingSpeed = 20.0f;
+	public float gravity = 825.0f;
+	private float acceleration = 1.5f;
+	private float friction = 5.0f;
 
 	//Action-specific parameters
-	private float climbingSpeed = 65.0f; //In the Y-direction
-	private float wallJumpRicochet = 78.0f; //06 * 13
-	private float wallSlideSpeed = -52.0f; //-(04 * 13)
+	private float climbingSpeed = 65.0f;
+	private float wallJumpRicochet = 78.0f;
+	private float wallSlideSpeed = -52.0f;
 
 	//Counter variables.
 	int jumpCounter = 0;
@@ -35,18 +38,22 @@ public partial class sidmovement : CharacterBody2D {
 	bool climbCheck;
 
 	//Reference Variables
-	public AnimationTree animation;
-	public AnimatedSprite2D sprite;
+	public AnimationPlayer animation;
+	public Sprite2D sprite;
 
     public override void _Ready() {
 		AddToGroup("Sid Marshall"); //Adds Sid Marshall to Player group.
-		animation.Active = true; //Sets the AnimatedTree to be active when starting the game.
+		animation.Active = true; //Sets the AnimationPlayer to be active when starting the game.
     }
     
 	public override void _PhysicsProcess(double delta) {
 		Vector2 direction = Input.GetVector("ui_left", "ui_right", "ui_up", "ui_down");
 		Vector2 velocity = Velocity; //Creating a vector component.
-		//FlipSprites(direction);
+		
+		//Flips the sprite if the player presses left
+		/*if(direction.X < 0) {
+			Sprite2D.Scale.X = (Math.Abs(sprite.Scale.X) * -1);
+		}*/
 
 		// Add the gravity.
 		if (!IsOnFloor()) {
@@ -77,15 +84,31 @@ public partial class sidmovement : CharacterBody2D {
 		} else if(direction.X >= 0) {
 			velocity.X = -direction.X * -walkingSpeed;
 		} else if(direction == Vector2.Zero) {
+			animation.Play("Idle");
 			velocity.X = Mathf.MoveToward(Velocity.X, 0, walkingSpeed);
 		}
 
-		//Running Mechanism.
-		if(direction.X >= 0 && Input.IsActionPressed("ui_run")) {
-			velocity.X = Mathf.MoveToward(Velocity.X, -runningSpeed, walkingSpeed);
-		} else if(direction.X <= 0 && Input.IsActionPressed("ui_run")) {
-			velocity.X = Mathf.MoveToward(Velocity.X, runningSpeed, walkingSpeed);
+		//Acceleration and Running Mechanism.
+		if(velocity.X != 0 && Input.IsActionPressed("ui_right") && Input.IsActionPressed("ui_run")) {
+			velocity.X = Mathf.MoveToward(Velocity.X, runningSpeed, acceleration);
+		} else if(Input.IsActionPressed("ui_left") && Input.IsActionPressed("ui_run")) {
+			velocity.X = Mathf.MoveToward(Velocity.X, -runningSpeed, acceleration);
 		}
+
+		//Friction Mechanism
+		if(velocity.X == 0 && Input.IsActionJustReleased("ui_left")) {
+			velocity.X = Mathf.MoveToward(velocity.X, 0, friction);
+		} else if(Input.IsActionJustReleased("ui_right")) {
+			velocity.X = Mathf.MoveToward(velocity.X, 0, friction);
+		}
+
+		//Skidding Mechanism
+		/*if(velocity.X > 0 && Input.IsActionJustReleased("ui_run") && Input.IsActionPressed("ui_left")) {
+			velocity.X = Mathf.MoveToward(0, velocity.X, friction);
+		} else if(velocity.X < 0 && Input.IsActionJustRelease("ui_run") && Input.IsActionPressed("ui_right")) {
+			velocity.X = Mathf.MoveToward(0, -velocity.X, -friction);
+		}
+		*/
 
 		//Sliding Mechanism.
 		/*if(IsOnFloor() && Input.IsActionPressed("ui_run") && Input.IsActionPressed("ui_action")) {
@@ -155,41 +178,14 @@ public partial class sidmovement : CharacterBody2D {
 			climbCheck = false;
 		}*/
 
-		//This code sets parameters for the Animation Tree to handle.
-		if(velocity.X == 0) {
-			animation.Set("parameters/Movement/blend_position", 0); //Plays the idle animation
-		} else if(velocity.X != 0) {
-			animation.Set("parameters/Movement/blend_position", velocity.X); //Plays walk or run, depening on Sid's velocity.
-			if(direction.X < 0) {
-				sprite.FlipH = true; //If the direction of X is less than 0 (aka, moving left), flip the spirtes.
-			} else if(direction.X > 0) {
-				sprite.FlipH = false; //If the direction of X is greater than 0 (aka, moving right), leave the sprites as is.
-			}
-		}
+		//Sliding Mechanisms
+		/*while(direction.X != 0 && Input.IsActionPressed("ui_run")) {
+			Mathf.Lerp(velocity.X, 0, -slidingSpeed);
+		} if(velocity.X == 0) {
+			//Play Idle animation
+		}*/
 
 		Velocity = velocity;
 		MoveAndSlide();
-	}
-
-	//Collectibles
-	/*public static void CollectibleDetected(Node2D body) {
-		if(body.IsInGroup("Collectible")) {
-			GetTree().Root.GetNode<StaticBody2D>("Jigsaw Puzzle"); //Gets the Jigsaw node, required for the method OnJigsawEntered();
-		}
-	}*/
-
-	private void timerCooldown(bool action, float delta) {
-		float timer = 0.5f;
-		float timerReset = 0.5f;
-
-		if(action) {
-			timer -= delta;
-			if(timer <= 0) {
-				action = false;
-				Velocity = new Vector2(0, 0);
-			}
-		}
-
-		timer = timerReset;
 	}
 }
