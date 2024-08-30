@@ -10,14 +10,16 @@ public partial class sidmovement : CharacterBody2D {
 	private float JumpingSpeed = -300.0f;
 	private float slidingSpeed = 20.0f;
 	public float gravity = 825.0f;
-	private float acceleration = 1.5f;
-	private float friction = 5.0f;
+	private float acceleration = 3.5f;
+	private float friction = 50.0f;
 
 	//Action-specific parameters
 	private float climbingSpeed = 65.0f;
 	private float wallJumpRicochet = 78.0f;
 	private float wallSlideSpeed = -52.0f;
 
+	//Boolean Variables.
+	public bool groundfriction;
 	//Counter variables.
 	int jumpCounter = 0;
 	int maxJumpCount = 2;
@@ -25,17 +27,6 @@ public partial class sidmovement : CharacterBody2D {
 	//Timer Variables
 	private float Timer = 2.0f;
 	private float TimerReset = 1.0f;
-
-	//Boolean Variables
-	bool movement;
-	bool airborne;
-	bool skidCheck;
-	bool doubleJumpCheck;
-	bool slideCheck;
-	bool diveRollCheck;
-	bool wallJumpCheck;
-	bool wallSlideCheck;
-	bool climbCheck;
 
 	//Reference Variables
 	public AnimationPlayer animation;
@@ -49,11 +40,9 @@ public partial class sidmovement : CharacterBody2D {
 	public override void _PhysicsProcess(double delta) {
 		Vector2 direction = Input.GetVector("ui_left", "ui_right", "ui_up", "ui_down");
 		Vector2 velocity = Velocity; //Creating a vector component.
-		
-		//Flips the sprite if the player presses left
-		/*if(direction.X < 0) {
-			Sprite2D.Scale.X = (Math.Abs(sprite.Scale.X) * -1);
-		}*/
+
+		//Test Cases
+		//Scenario 1: Left and Right Pushed Together
 
 		// Add the gravity.
 		if (!IsOnFloor()) {
@@ -62,15 +51,6 @@ public partial class sidmovement : CharacterBody2D {
 			} else if(IsOnFloor()) {
 				jumpCounter = 0;
 			}
-
-		// Handle Jump.
-		/*TO-DO: Add timer logic for double-jump, dive-roll and wall-jump. You cannot interact while the
-		action is happening (you can change direction midair for double-jump, however).*/
-
-		// Get the input direction and handle the movement/deceleration.
-		// As good practice, you should replace UI actions with custom gameplay actions.
-		
-		//FlipSprites(direction);
 		
 		//Jumping Mechanism
 		if (Input.IsActionJustPressed("ui_jump") && jumpCounter < maxJumpCount) {
@@ -79,27 +59,39 @@ public partial class sidmovement : CharacterBody2D {
 		}
 
 		//Walking Mechanism.
-		if(direction.X <= 0) {
+		if(Input.IsActionPressed("ui_right")) {
 			velocity.X = direction.X * walkingSpeed;
-		} else if(direction.X >= 0) {
+		} else if(Input.IsActionPressed("ui_left")) {
 			velocity.X = -direction.X * -walkingSpeed;
 		} else if(direction == Vector2.Zero) {
 			animation.Play("Idle");
-			velocity.X = Mathf.MoveToward(Velocity.X, 0, walkingSpeed);
+			velocity.X = Mathf.MoveToward(Velocity.X, 0, friction);
 		}
-
-		//Acceleration and Running Mechanism.
-		if(velocity.X != 0 && Input.IsActionPressed("ui_right") && Input.IsActionPressed("ui_run")) {
+		
+		//Acceleration and Running Mechanisms
+		if(Input.IsActionPressed("ui_right") && Input.IsActionPressed("ui_run")) {
 			velocity.X = Mathf.MoveToward(Velocity.X, runningSpeed, acceleration);
 		} else if(Input.IsActionPressed("ui_left") && Input.IsActionPressed("ui_run")) {
 			velocity.X = Mathf.MoveToward(Velocity.X, -runningSpeed, acceleration);
 		}
 
 		//Friction Mechanism
-		if(velocity.X == 0 && Input.IsActionJustReleased("ui_left")) {
-			velocity.X = Mathf.MoveToward(velocity.X, 0, friction);
-		} else if(Input.IsActionJustReleased("ui_right")) {
-			velocity.X = Mathf.MoveToward(velocity.X, 0, friction);
+		if(Input.IsActionPressed("ui_run") && velocity.X != 0) {
+			groundfriction = true;
+			if(Input.IsActionJustReleased("ui_left") || Input.IsActionJustReleased("ui_right")) {
+				velocity.X = Mathf.MoveToward(velocity.X, 0, friction);
+			} if(Input.IsActionPressed("ui_left") && Input.IsActionPressed("ui_right")) {
+				if(velocity.X < 0 || velocity.X > 0 || velocity.X == 0) {
+					velocity.X = 0;
+				}
+			}
+		} else if(Input.IsActionPressed("ui_run") && velocity.X == 0) {
+			groundfriction = false; //If the player doesn't move, friction doesn't happen.
+			if(Input.IsActionPressed("ui_right") && Input.IsActionPressed("ui_run")) {
+				velocity.X = Mathf.MoveToward(Velocity.X, runningSpeed, acceleration);
+			} else if(Input.IsActionPressed("ui_left") && Input.IsActionPressed("ui_run")) {
+				velocity.X = Mathf.MoveToward(Velocity.X, -runningSpeed, acceleration);
+			}
 		}
 
 		//Skidding Mechanism
@@ -184,7 +176,7 @@ public partial class sidmovement : CharacterBody2D {
 		} if(velocity.X == 0) {
 			//Play Idle animation
 		}*/
-
+		
 		Velocity = velocity;
 		MoveAndSlide();
 	}
