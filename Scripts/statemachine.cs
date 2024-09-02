@@ -3,37 +3,36 @@ using System;
 using System.Collections.Generic;
 
 public partial class StateMachine : Node {
-    [Export] public NodePath initialState;
-	private Dictionary<string, State> sidStates;
-	private State currentState;
+    public class FiniteStateMachine {
+        protected Dictionary<string, State> states = new Dictionary<string, State>();
+        public State CurrentState {get; private set;}
+        public string CurrentStateName {get; private set;}
+        public string previousStateName {get; set;}
+
+        public void Add(string key, State state) {
+            states[key] = state;
+            state.fsm = this;
+        }
+
+        public void ExecuteStatePhysics(float delta) => CurrentState.PhysicsProcess(delta);
+        public void ExecuteProcess(float delta) => CurrentState.Process(delta);
+
+        public void InitialiseState(string newState) {
+            CurrentState = states[newState];
+            CurrentStateName = newState;
+            CurrentState.EnterState();
+        }
+
+        public void ChangeState(string newState, State previous = null) {
+            CurrentState.ExitState();
+            CurrentState = states[newState];
+            CurrentStateName = newState;
+            CurrentState.EnterState(previous);
+        }
+    }
+
     public override void _Ready() {
-		sidStates = new Dictionary<string, State>();
-		foreach(Node node in GetChildren()) {
-			if(node is State thisState) {
-				sidStates[node.Name] = thisState;
-				thisState.finiteStateMachine = this;
-				thisState.StartState();
-				thisState.ExitState();
-			}
-		}
-		currentState = GetNode<State>(initialState);
-		currentState.EnterState();
     }
-
     public override void _PhysicsProcess(double delta) {
-		currentState.PhysicsUpdate((float)delta);
     }
-
-    public override void _UnhandledInput(InputEvent @event) {
-        currentState.HandleInput(@event);
-    }
-
-	public void TransitionTo(string key) {
-		if(!sidStates.ContainsKey(key) || currentState == sidStates[key]) {
-			return;
-		}
-		currentState.ExitState();
-		currentState = sidStates[key];
-		currentState.EnterState();
-	}
 }
