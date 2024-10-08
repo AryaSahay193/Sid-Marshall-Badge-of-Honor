@@ -1,0 +1,104 @@
+using JetBrains.Annotations;
+using Unity.VisualScripting;
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+[RequireComponent(typeof(Rigidbody2D))]
+public class SidMovement : MonoBehaviour {
+    //[SerializeField] allows you to directly edit a numerical value into Unity.
+    [SerializeField] public Vector2 rayCastSize;
+    [SerializeField] public float rayCastDistance;
+    [SerializeField] public LayerMask tileSetLayer;
+    private float walkingSpeed = 3.5f;
+    private float runningSpeed = 20.0f;
+    private float jumpingSpeed = 12.5f;
+    private float numberOfJumps; //Number of jumps in the current state.
+    private float maximumJumps = 2; //The maximum number of jumps allowed.
+    private bool ground;
+    private bool doubleJump;
+    
+    //Reference variables
+    private Animator sidAnimations;
+    private Rigidbody2D sidMarshallRigidBody;
+    private PlayerController sidPlayerController; //References the Unity-Auto-Generated script.
+    private BoxCollider2D boxCastCollision;
+    private InputAction sidCrouch;
+    private InputAction sidJump;
+    private InputAction sidMove;
+    private InputAction sidRun;
+
+    private void Awake() { //Everytime the script starts, the code runs with the Awake method.
+        //Grabs references for the nodes in Unity.
+        sidMarshallRigidBody = GetComponent<Rigidbody2D>();
+        sidAnimations = GetComponent<Animator>();
+        sidPlayerController = new PlayerController();
+        boxCastCollision = GetComponent<BoxCollider2D>();
+    }
+
+    //Method that handles whenever an input is pressed. Enabling the controls activates the action performed.
+    private void OnEnable() {
+        //Basic Movement Inputs
+        sidMove = sidPlayerController.Player.Movement;
+        sidMove.Enable();
+        
+        //Basic Running Inputs
+        sidRun = sidPlayerController.Player.Run;
+        sidPlayerController.Player.Run.performed += Accelerate; //Whenever the input for run is pressed, the running action is performed.
+        sidRun.Enable();
+
+        //Basic Jumping Inputs
+        sidJump = sidPlayerController.Player.Jump;
+        sidPlayerController.Player.Jump.performed += Jump; //Whenever the input is pressed for jump, the jump method is performed.
+        sidJump.Enable();
+    }
+
+    //Method that handles whenever the input is released. Disabling the controls causes the action to be deactivated.
+    private void OnDisable() {
+        sidMove.Disable();
+        
+        sidRun.Disable();
+        sidPlayerController.Player.Run.performed -= Accelerate;
+
+        sidJump.Disable();
+        sidPlayerController.Player.Jump.performed -= Jump; //Whenever the input is let-go, the method is done calling.
+    }
+
+    private void FixedUpdate() {
+        Vector2 sid2DVectorMovement = sidMove.ReadValue<Vector2>();
+        sidMarshallRigidBody.velocity = new Vector2(sid2DVectorMovement.x * walkingSpeed, sidMarshallRigidBody.velocity.y); //You can change the velocity of X, but Y stays the same.
+
+        //Flips the character sprite.
+        if(sid2DVectorMovement.x > 0) {
+            transform.localScale = Vector3.one;
+        } else if(sid2DVectorMovement.x < 0) {
+            transform.localScale = new Vector3(-1, 1, 1);
+        }
+
+        //Animation Logic
+        sidAnimations.SetBool("Idle", sid2DVectorMovement.x == 0);
+        sidAnimations.SetBool("Walk", sid2DVectorMovement.x != 0);
+        sidAnimations.SetBool("Run", sid2DVectorMovement.x != 0 && Input.GetKey(KeyCode.LeftShift));
+        sidAnimations.SetBool("Ground", groundChecker()); //Sets boolean for jumping.
+    }
+
+    private void Jump(InputAction.CallbackContext jump) {
+        sidAnimations.SetTrigger("Jump");
+        if(groundChecker()) {
+            sidMarshallRigidBody.velocity = new Vector2(sidMarshallRigidBody.velocity.y * jumpingSpeed, sidMarshallRigidBody.velocity.x);
+        }
+    }
+
+    private void Accelerate(InputAction.CallbackContext accelerate) {
+        sidMarshallRigidBody.velocity = new Vector2(sidMarshallRigidBody.velocity.x * runningSpeed, sidMarshallRigidBody.velocity.y);
+    }
+
+    public bool groundChecker() {
+        RaycastHit2D collisionDetection = Physics2D.BoxCast(boxCastCollision.bounds.center, boxCastCollision.bounds.size, 0.0f, Vector2.down, 0.1f, tileSetLayer);
+        return collisionDetection.collider != null;
+    }
+
+    public bool wallChecker() {
+        RaycastHit2D collisionDetection = Physics2D.BoxCast(boxCastCollision.bounds.center, boxCastCollision.bounds.size, 0.0f, new Vector2(transform.localScale.x, 0), 0.1f, tileSetLayer);
+        return collisionDetection.collider != null;
+    }
+}
