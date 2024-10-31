@@ -4,20 +4,27 @@ using UnityEngine.InputSystem;
 
 public class SidMovement : MonoBehaviour {
     //[SerializeField] allows you to directly edit a numerical value into Unity.
-    [SerializeField] public LayerMask tileSetLayer; //Choose Layers in Unity.
-    private float walkingSpeed = 3.5f;
-    private float runningSpeed = 2.0f;
-    private float jumpingSpeed = 10.0f;
+    [Header("Movement Variables")]
+    [SerializeField] private float walkingSpeed;
+    [SerializeField] private float friction;
+    [SerializeField] private float runningSpeed;
+    [SerializeField] private float jumpingSpeed;
     private Vector2 rayCastSize = new Vector2(0.5f, 0.2f); //Creates the size of the BoxCast
     private float rayCastDistance = 0.3f; //Determines how far the RayCast detects the ground.
-    private float horizontalMovement;
+    
+    [Header("Jump Variables")]
     private float jumpsLeft;
     private float maximumJumps = 2;
+    
+    [Header("Input-System References")]
+    private float horizontalMovement;
     private bool runningAction;
     private bool jumpingAction;
+    private bool wallJumpingAction;
     private bool crouchingAction;
     
-    //Reference variables
+    [Header("Reference Variables")]
+    [SerializeField] public LayerMask tileSetLayer; //Choose Layers in Unity.
     [SerializeField] private Rigidbody2D sidMarshallRigidBody; //References the RigidBody2D class as a variable.
     private Animator sidAnimations; //References the Animator class as a variable.
     private BoxCollider2D boxCastCollision; //References the BoxCollider2D class as a variable.
@@ -32,48 +39,50 @@ public class SidMovement : MonoBehaviour {
 
     //Method for handling code that runs every frame, such as Animation Logic.
     private void Update() {
-        float verticalMovement = sidMarshallRigidBody.velocity.y;
-        //Animation Logic - Horizontal Movement
-        if(horizontalMovement == 0 && groundChecker() || verticalMovement == 0 && groundChecker()) {
-            sidAnimations.SetBool("Grounded", true);
-            sidAnimations.SetFloat("Horizontal Velocity", 0.0f); //Idle Logic
-            } if(horizontalMovement != 0) {
-                sidAnimations.SetFloat("Horizontal Velocity", 1.0f); //Walking Logic
-                if(runningAction) {
-                    sidAnimations.SetFloat("Horizontal Velocity", 2.0f); //Running Logic
-                }
-            }
-
-        //Animation Logic - Vertical Movement
-        if(verticalMovement > 0 && jumpingAction) {
-            sidAnimations.SetBool("Grounded", false);
-            sidAnimations.SetFloat("Vertical Velocity", 0.0f); //Single Jump Logic
-            if(jumpsLeft == 0) {
-                sidAnimations.SetFloat("Vertical Velocity", 1.0f); //Double Jump Logic
-            } 
-        } else if(verticalMovement < 0) {
-            sidAnimations.SetFloat("Vertical Velocity", -1.0f); //Falling Logic
-        }
-        
         //Flips the character sprite.
         if(horizontalMovement > 0) {
             transform.localScale = Vector3.one; //Keeps the vector the same.
         } else if(horizontalMovement < 0) {
             transform.localScale = new Vector3(-1, 1, 1); //Only changes the X-value of vector 3 (flips the character)
         }
-    }
-    
-    //Method best used for Physcis-Related code, such as Movement Logic.
-    private void FixedUpdate() {
+        
+        float currentSpeed = sidMarshallRigidBody.velocity.x;
+        float currentHeight = sidMarshallRigidBody.velocity.y;
         //Basic Movement: Walking and Running
-        sidMarshallRigidBody.velocity = new Vector2(horizontalMovement * walkingSpeed, sidMarshallRigidBody.velocity.y); //You can change the velocity of X, but Y stays the same.
-        if(runningAction && horizontalMovement != 0) {
-            sidMarshallRigidBody.velocity = new Vector2(sidMarshallRigidBody.velocity.x * runningSpeed, sidMarshallRigidBody.velocity.y);
+        if(groundChecker()) {
+            sidAnimations.SetBool("Grounded", true);
+            if(horizontalMovement == 0) {
+                sidAnimations.SetFloat("Horizontal Velocity", 0.0f); //Idle Animation Logic
+            } else if(horizontalMovement != 0) {
+                sidMarshallRigidBody.velocity = new Vector2(horizontalMovement * walkingSpeed, currentHeight); //You can change the velocity of X, but Y stays the same.
+                sidAnimations.SetFloat("Horizontal Velocity", 1.0f); //Walking Animation Logic
+                if(runningAction && currentSpeed != runningSpeed) {
+                    currentSpeed += horizontalMovement;
+                    currentSpeed *= Mathf.Pow(1.0f - friction, Time.deltaTime * 10.0f);
+                    sidMarshallRigidBody.velocity = new Vector2(currentSpeed, currentHeight);
+                    Vector2.ClampMagnitude(sidMarshallRigidBody.velocity, runningSpeed);
+                    sidAnimations.SetFloat("Horizontal Velocity", 2.0f); //Running Animation Logic
+                }
+            } else if(horizontalMovement != 0 && !runningAction) {
+                Mathf.Lerp(currentSpeed, 0.0f, friction);
+                sidAnimations.Play("Skid");
+            }
         }
 
         //Resets the amount of jumps.
         if(groundChecker() && sidMarshallRigidBody.velocity.y <= 0) {
             jumpsLeft = maximumJumps;
+        }
+
+        //Animation Logic - Vertical Movement
+        if(jumpingAction && !groundChecker()) {
+            sidAnimations.SetBool("Grounded", false);
+            sidAnimations.SetFloat("Vertical Velocity", 0.0f); //Single Jump Logic
+            if(jumpsLeft == 0) {
+                sidAnimations.SetFloat("Vertical Velocity", 1.0f); //Double Jump Logic
+            } 
+        } else if(currentHeight < 0) {
+            sidAnimations.SetFloat("Vertical Velocity", -1.0f); //Falling Logic
         }
     }
 
@@ -83,17 +92,17 @@ public class SidMovement : MonoBehaviour {
     }
 
     //Acceleration and Friction Method
-    public void Run(InputAction.CallbackContext acceleration) {
-        runningAction = acceleration.ReadValueAsButton(); //Reads a single button value.
+    public void Run(InputAction.CallbackContext running) {
+        runningAction = running.ReadValueAsButton(); //Reads a single button value.
     }
 
     //Jump Method
-    public void Jump(InputAction.CallbackContext jump) {
-        jumpingAction = jump.ReadValueAsButton();
-        if(jump.performed && jumpsLeft > 0) {
+    public void Jump(InputAction.CallbackContext jumping) {
+        jumpingAction = jumping.ReadValueAsButton();
+        if(jumping.performed && jumpsLeft > 0) {
             sidMarshallRigidBody.velocity = new Vector2(sidMarshallRigidBody.velocity.x, jumpingSpeed);
             jumpsLeft -= 1;
-        } if(jump.canceled && sidMarshallRigidBody.velocity.y > 0.0f) {
+        } if(jumping.canceled && sidMarshallRigidBody.velocity.y > 0.0f) {
             sidMarshallRigidBody.velocity = new Vector2(sidMarshallRigidBody.velocity.x, sidMarshallRigidBody.velocity.y * 0.5f);
         }
     }
