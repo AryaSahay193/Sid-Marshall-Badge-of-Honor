@@ -5,19 +5,23 @@ using UnityEngine.InputSystem;
 public class SidMovement : MonoBehaviour {
     //[SerializeField] allows you to directly edit a numerical value into Unity.
     [Header("Movement Variables")]
+    private float currentSpeed;
+    private float currentHeight;
     [SerializeField] private float walkingSpeed;
     [SerializeField] private float acceleration;
     [SerializeField] private float friction;
     [SerializeField] private float runningSpeed;
     [SerializeField] private float jumpingSpeed;
-    private Vector2 rayCastSize = new Vector2(0.5f, 0.2f); //Creates the size of the BoxCast
+    private Vector2 rayCastSize = new Vector2(0.3f, 0.2f); //Creates the size of the BoxCast
     private float rayCastDistance = 0.3f; //Determines how far the RayCast detects the ground.
     
     [Header("Jump Variables")]
-    private float jumpsLeft;
-    private float maximumJumps = 2;
-    private float coyoteTime;
+    [SerializeField] private float coyoteTime;
+    [SerializeField] private float jumpBufferTime;
     private float coyoteCounter;
+    private float jumpBufferCounter;
+    private int jumpsLeft;
+    private int maximumJumps = 2;
     
     [Header("Input-System References")]
     private float horizontalDirection;
@@ -27,8 +31,9 @@ public class SidMovement : MonoBehaviour {
     private bool crouchingAction;
     
     [Header("Reference Variables")]
-    [SerializeField] public LayerMask tileSetLayer; //Choose Layers in Unity.
+    [SerializeField] private PhysicsMaterial2D physicsMaterial;
     [SerializeField] private Rigidbody2D sidMarshallRigidBody; //References the RigidBody2D class as a variable.
+    [SerializeField] private LayerMask tileSetLayer; //Choose Layers in Unity.
     private Animator sidAnimations; //References the Animator class as a variable.
     private BoxCollider2D boxCastCollision; //References the BoxCollider2D class as a variable.
 
@@ -49,14 +54,12 @@ public class SidMovement : MonoBehaviour {
             transform.localScale = new Vector3(-1, 1, 1); //Only changes the X-value of vector 3 (flips the character)
         }
         
-        float currentSpeed = sidMarshallRigidBody.velocity.x;
-        float currentHeight = sidMarshallRigidBody.velocity.y;
+        currentSpeed = sidMarshallRigidBody.velocity.x;
+        currentHeight = sidMarshallRigidBody.velocity.y;
         Vector2 currentPosition = new Vector2(sidMarshallRigidBody.velocity.x, sidMarshallRigidBody.velocity.y);
         //Basic Movement: Walking and Running (With animation-logic)
         if(groundChecker()) {
             sidAnimations.SetBool("Grounded", true);
-            jumpsLeft = maximumJumps;
-            coyoteCounter = coyoteTime;
             if(horizontalDirection == 0) {
                 sidAnimations.SetFloat("Horizontal Velocity", 0.0f); //Idle Animation Logic
             } //This if-else statement is basically calculating the velocity which we can then substitute in our RigidBody2D component.
@@ -73,41 +76,63 @@ public class SidMovement : MonoBehaviour {
                     currentSpeed = Mathf.MoveTowards(sidMarshallRigidBody.velocity.x, walkingSpeed, friction * Time.deltaTime * 10.0f);
                 }
             } 
-            sidMarshallRigidBody.velocity = new Vector2(currentSpeed, currentHeight); //After all the calculations, the velocity is applied to the RigidBody2D
+            currentPosition = new Vector2(currentSpeed, currentHeight);
+            sidMarshallRigidBody.velocity = currentPosition; //After all the calculations, the velocity is applied to the RigidBody2D
             slopeAdjustment(currentPosition);
         }
 
-        //Jumping Logic (with animation logic)
-        if(jumpingAction && jumpsLeft > 0) {
-            sidMarshallRigidBody.velocity = new Vector2(currentSpeed, jumpingSpeed);
-            sidAnimations.SetFloat("Vertical Velocity", 0.0f); //Single Jump Logic
-            sidAnimations.SetBool("Grounded", false);
+        //Jumping, Double-Jumping, and Wall-Jumping Logic (with animation logic)
+        if(jumpingAction) {
+            jumpBufferCounter = jumpBufferTime; //Resets the jump-buffer.
+        } else {
+            jumpBufferCounter -= Time.deltaTime;
+        } if(groundChecker()) {
+            coyoteCounter = coyoteTime; //Resets the CoyoteCounter.
+            jumpsLeft = maximumJumps; //Resets the amount of jumps.
+        } else if(!groundChecker()) {
             coyoteCounter -= Time.deltaTime;
-            jumpsLeft -= 1;
-            if(jumpsLeft == 0) {
-                sidAnimations.SetFloat("Vertical Velocity", 1.0f); //Double Jump Logic
-            } 
-        } else if(!jumpingAction && currentHeight > 0) {
-            sidMarshallRigidBody.velocity = new Vector2(currentSpeed, currentHeight * 0.5f);
-        } else if(!groundChecker() && currentHeight < 0) {
-            sidAnimations.SetBool("Grounded", false);
-            sidAnimations.SetFloat("Vertical Velocity", -1.0f); //Falling Logic
+            if(currentHeight < 0) {
+                sidAnimations.SetBool("Grounded", false);
+                sidAnimations.SetFloat("Vertical Velocity", -1.0f); //Falling Logic
+            }
+        }
+
+        if(coyoteCounter > 0 && jumpBufferCounter > 0) {
+            performJump();
+        } if(!jumpingAction && currentHeight > 0) {
+            sidMarshallRigidBody.velocity = new Vector2(currentSpeed, currentHeight * 0.5f); //Variable Jump Height by length of button press.
+            coyoteCounter = 0.0f;
         } 
     }
 
-    //Basic Movement Method.
+    //Basic Movement Input Method.
     public void Movement(InputAction.CallbackContext movement) {
         horizontalDirection = movement.ReadValue<Vector2>().x; //Reads on the x-values
     }
 
-    //Acceleration and Friction Method
+    //Basic Running Input Method
     public void Run(InputAction.CallbackContext running) {
         runningAction = running.ReadValueAsButton(); //Reads a single button value.
     }
 
-    //Jump Method
+    //Basic Jumping Input Method
     public void Jump(InputAction.CallbackContext jumping) {
         jumpingAction = jumping.ReadValueAsButton();
+    }
+
+    private void performJump() {
+        if(coyoteCounter <= 0.0f && !wallChecker() && jumpsLeft <= 0) {
+            return;
+        } if(groundChecker() || coyoteCounter > 0) {
+            sidMarshallRigidBody.velocity = new Vector2(currentSpeed, jumpingSpeed);
+            sidAnimations.SetFloat("Vertical Velocity", 0.0f); //Single Jump Logic
+            sidAnimations.SetBool("Grounded", false);
+            jumpBufferCounter = 0.0f;
+        } else if(jumpsLeft > 0) {
+            sidMarshallRigidBody.velocity = new Vector2(currentSpeed, jumpingSpeed);
+            sidAnimations.SetFloat("Vertical Velocity", 1.0f); //Double Jump Logic
+            jumpsLeft -= 1;
+        } coyoteCounter = 0.0f;
     }
 
     public bool groundChecker() {
