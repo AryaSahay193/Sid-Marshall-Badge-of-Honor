@@ -2,29 +2,29 @@ using Godot;
 using System;
 
 public partial class playermovement : CharacterBody2D {
-	private int maximumJumps = 2;
-	private int jumpsLeft;
-	private float walkingSpeed = 10.0f;
-	private float runningSpeed;
-	private float acceleration = 2.5f;
-	private float friction = 3.0f;
-	private float gravityScale = 98.1f;
-	private Vector2 axisMovement = Input.GetVector("left", "right", "up", "down");
-	private Vector2 characterVelocity;
+	private int maximumJumps = 2, jumpsLeft;
+	private const float jumpVelocity = -265.0f;
+	private const float walkingSpeed = 79.5f, runningSpeed = 159.0f;
+	private float acceleration, friction;
+	private float wallJumpSpeed, wallSlideSpeed;
 
-	public override void _Ready() { //Method for initializing variables.
-		jumpsLeft = maximumJumps;
-	}
+    public override void _Ready() {
+        jumpsLeft = maximumJumps;
+    }
 
-	public override void _PhysicsProcess(double delta) { //Main method for running code, runs every frame.
-		characterVelocity = axisMovement * walkingSpeed;
-		if(Input.IsActionJustPressed("ui_left")) {
-			characterVelocity.X -= walkingSpeed;
-		} else if(Input.IsActionJustPressed("ui_right")) {
-			characterVelocity.X += walkingSpeed;
-		}
-		
-		characterVelocity.Y += gravityScale * (float)delta;
+    public override void _PhysicsProcess(double delta) {
+		Vector2 direction = Input.GetVector("player_left", "player_right", "player_up", "player_down");
+		Vector2 velocity = Velocity;
+
+		//Jump and Gravity.
+		if (!IsOnFloor()) velocity += GetGravity() * (float)delta; //Gravity.
+		if (Input.IsActionJustPressed("ui_accept") && IsOnFloor()) velocity.Y = jumpVelocity; //Jump.
+
+		//Walking movements.
+		if (direction != Vector2.Zero) velocity.X = direction.X * walkingSpeed;
+		else velocity.X = Mathf.MoveToward(Velocity.X, 0, walkingSpeed);
+
+		Velocity = velocity;
 		MoveAndSlide();
 	}
 }
