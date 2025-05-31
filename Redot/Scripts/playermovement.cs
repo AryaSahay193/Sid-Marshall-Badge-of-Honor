@@ -3,73 +3,50 @@ using System;
 using System.Diagnostics;
 
 public partial class playermovement : CharacterBody2D {
-	private bool isIdle, isMoving, isRunning, isAirborne, isJumping, isFalling, doubleJump, isAttacking, isCrouching;
+	private bool isIdle, isMoving, isAttacking, isCrouching;
 	private float currentVelocity, acceleration = 3.0f, friction = 5.0f, airAcceleration = 0.3f;
-	private float walkingSpeed = 53.0f, runningSpeed = 159.0f;
+	private float walkingSpeed = 53.0f, runningSpeed = 159.0f, groundSlideSpeed = 3.5f;
 	private float jumpVelocity = -132.5f, gravityValue = 312.7f, airVelocity = 25.0f, coyoteCounter = 1.5f, coyoteTime;
 	private float wallPushback = 10.0f, wallJumpHeight = 13.0f, wallSlideSpeed;
 	private int animationVelocityX, animationVelocityY, maximumJumps = 2, numberOfJumps = 0;
 	
-	[Export] private AnimationTree playerAnimator;
-	[Export] private AnimationPlayer animationPlayer;
+	private AnimatedSprite2D playerAnimations;
 	private CollisionShape2D playerCollider;
 	private Vector2 direction, velocity;
-	private Sprite2D playerSprites;
-	private Camera2D camera2D;
+	private cameramovement cameraScript;
 
     public override void _Ready() {
-		playerSprites = GetNode<Sprite2D>("MainSprite");
-		animationPlayer = GetNode<AnimationPlayer>("AnimationPlayer"); //Grabs the Animation Player reference
-		playerAnimator = GetNode<AnimationTree>("AnimationTree"); //Grabs the Animation Tree reference
-		playerAnimator.Active = true; //Always sets Animation Tree to true.
-		camera2D = GetNode<Camera2D>("Camera");
+		playerAnimations = GetNode<AnimatedSprite2D>("AnimatedSprites");
+		cameraScript = new cameramovement();
 		numberOfJumps = maximumJumps;
     }
 
+	//Main method of the player, reads code for each frame the game runs.
     public override void _Process(double delta) {
 		direction = Input.GetVector("player_left", "player_right", "player_up", "player_down");
 		velocity = Velocity;
 
 		//Handles animations and movement.
-		handlePlayerAnimations(); //Handles flipping sprites and animations.
-		if(IsOnFloor()) {
-			performMovement();
-			performCrouchandSlide();
-			coyoteCounter = coyoteTime;
-		}
+		if(!cameraScript.canMoveCamera) {
+			if(IsOnFloor()) {
+				coyoteCounter = coyoteTime; //Resets the CoyoteCounter to 0, for jumping.
+				performCrouchandSlide(); //Handles the crouching and sliding mechanism.
+				performMovement(); //Handles player movement (walk, run, acceleration, friction).
+				flipCharacter(); //Handles flipping sprites and animations.
+			}
 
-		//performAttack();
-		performJump((float)delta);
-		Velocity = velocity;
-		MoveAndSlide();
+			//performAttack();
+			performJump((float)delta); //Handles the jumping mechanism.
+			Velocity = velocity; //Setting the Velocity Vector2 equal to velocity.
+			MoveAndSlide(); //A necessary movement to make movement in Redot engine work.
+		}
 	}
 	
-	public void handlePlayerAnimations() {
-		if(direction.X == 0.0f) animationPlayer.Play("Idle");
-		else if(direction.X != 0.0f) {
-			if(direction.X < 0.0f) playerSprites.FlipH = true;
-			else if(direction.X > 0.0f) playerSprites.FlipH = false;
+	public void flipCharacter() {
+		if(direction.X != 0.0f) {
+			if(direction.X < 0.0f) playerAnimations.FlipH = true;
+			else if(direction.X > 0.0f) playerAnimations.FlipH = false;
 		}
-		
-		isAirborne = !IsOnFloor();
-		doubleJump = isAirborne && numberOfJumps == 1;
-		isIdle = IsOnFloor() && velocity.X == 0.0f;
-		isFalling = isAirborne && velocity.Y > 0.0f;
-		isMoving = IsOnFloor() && velocity.X != 0.0f;
-		isRunning = isMoving && Input.IsActionPressed("player_run");
-		isJumping = IsOnFloor() && Input.IsActionJustPressed("player_jump");
-		isCrouching = IsOnFloor() && Input.IsActionJustPressed("player_down");
-		isAttacking = Input.IsActionJustPressed("player_attack");
-		playerAnimator.Set("parameters/conditions/IsGrounded", IsOnFloor() && !IsOnWall());
-		playerAnimator.Set("parameters/conditions/IsWalled", IsOnWall() && !IsOnFloor());
-		playerAnimator.Set("parameters/conditions/IsAirborne", isAirborne);
-		playerAnimator.Set("parameters/conditions/doubleJump", doubleJump);
-		playerAnimator.Set("parameters/conditions/IsFalling", isFalling);
-		playerAnimator.Set("parameters/conditions/IsIdle", isIdle);
-		playerAnimator.Set("parameters/conditions/IsMoving", isMoving);
-		playerAnimator.Set("parameters/conditions/IsRunning", isRunning);
-		playerAnimator.Set("parameters/conditions/IsAttacking", isAttacking);
-		playerAnimator.Set("parameters/conditions/IsCrouching", isCrouching);
 	}
 
 	public void performMovement() {
@@ -79,24 +56,35 @@ public partial class playermovement : CharacterBody2D {
 			if(Input.IsActionPressed("player_run")) {
 				currentVelocity = direction.X * runningSpeed;
 				velocity.X = Mathf.MoveToward(velocity.X, currentVelocity, runningAcceleration);
-			} else velocity.X = Mathf.MoveToward(velocity.X, currentVelocity, acceleration);
+				playerAnimations.Play("Run");
+			} else { 
+				velocity.X = Mathf.MoveToward(velocity.X, currentVelocity, acceleration);
+				playerAnimations.Play("Walk");
+			}
 		} else { 
 			velocity.X = Mathf.MoveToward(velocity.X, 0.0f, friction);
-			//animationPlayer.Play("Skidding");
+			if(velocity.X != 0.0f && (velocity.X < walkingSpeed || velocity.X > -walkingSpeed)) playerAnimations.Play("Skid");
+			whenAnimationFinished();
 		}
 	}
 
 	public void performJump(float delta) {
 		float airBorneSpeed = airVelocity * direction.X;
+		float airborneCanJump = -30.0f;
 		if(!IsOnFloor()) {
+			velocity.Y += gravityValue * (float)delta; //Sets the character gravity.
 			coyoteCounter -= delta;
-			velocity.Y += gravityValue * (float)delta; //Gravity.
-			if(velocity.Y > 0.0f) Mathf.MoveToward(currentVelocity, airBorneSpeed, airAcceleration);
+			if(velocity.Y > 0.0f) {
+				if(direction.X != 0.0f) Mathf.MoveToward(currentVelocity, airBorneSpeed, airAcceleration);
+				if(velocity.Y <= airborneCanJump) numberOfJumps = 3;
+				playerAnimations.Play("Fall");
+			}
 		} if(Input.IsActionJustPressed("player_jump") && numberOfJumps < maximumJumps) {
+			if(numberOfJumps == 1) playerAnimations.Play("Double-Jump");
+			if(numberOfJumps == 0) playerAnimations.Play("Jump");
+			whenAnimationFinished();
 			velocity.Y = jumpVelocity;
 			numberOfJumps += 1;
-			//playerAnimator.Set("parameters/Airborne/blend_position", 0);
-			//if(!IsOnFloor() && velocity.Y >= 0.0f) playerAnimator.Set("parameters/Airborne/blend_position", 2);
 		} 
 		if(IsOnFloor()) numberOfJumps = 0;
 		else if(numberOfJumps == 0) numberOfJumps += 1;
@@ -110,15 +98,42 @@ public partial class playermovement : CharacterBody2D {
 	}
 
 	public void performAttack() {
-		isAttacking = Input.IsActionPressed("player_down") && IsOnFloor();
-		if(isAttacking) {
-			velocity.X = 0.0f;
-			//Play "Kick - Normal"
-			playerSprites.FlipH = false;
+		if(IsOnFloor() && Input.IsActionJustPressed("player_punch")) {
+			velocity = new Vector2(0.0f, 0.0f);
+			//playerAnimations.Play("Punch");
+			//playerAnimations.FlipH = false;
+			whenAnimationFinished();
 		} 
 	}
 
 	public void performCrouchandSlide() {
-		if(Input.IsActionPressed("player_down")) {}
+		if(velocity.X <= walkingSpeed || velocity.X >= -walkingSpeed) { 
+			if(Input.IsActionPressed("player_down")) {
+				velocity.X = Mathf.MoveToward(velocity.X, 0.0f, friction);
+				playerAnimations.Play("Crouch");
+			} else if(Input.IsActionJustReleased("player_down")) playerAnimations.Play("Crouch (Recover)");
+		} else if(velocity.X == runningSpeed) {
+			velocity.X = Mathf.MoveToward(velocity.X, 0.0f, groundSlideSpeed);
+			playerAnimations.Play("Slide");
+			if(playerAnimations.IsPlaying()) return;
+			playerAnimations.Play("Slide (Loop)");
+			if(playerAnimations.IsPlaying()) return;
+			playerAnimations.Play("Slide (Recover)");
+			whenAnimationFinished();
+		}
+	}
+
+	//Signal Method of AnimatedSprite2D node when playing one animation after another.
+	private void whenAnimationChanges() {
+
+	}
+
+	//Signal Method of AnimatedSprite2D node when executing something once the animation is done.
+	private void whenAnimationFinished() {
+		if(playerAnimations.Animation == "Skid") playerAnimations.Play("Idle");
+		if(playerAnimations.IsPlaying()) return;
+		playerAnimations.Stop(); //This way the animation does not loop.
+		if(!IsOnFloor() && velocity.Y < 0.0f) playerAnimations.Play("Fall");
+		if(IsOnFloor() && direction.X == 0.0f) playerAnimations.Play("Idle");
 	}
 }
