@@ -10,6 +10,8 @@ public partial class playermovement : CharacterBody2D {
 	private float wallPushback = 10.0f, wallJumpHeight = 13.0f, wallSlideSpeed;
 	private int animationVelocityX, animationVelocityY, maximumJumps = 2, numberOfJumps = 0;
 	
+	private AudioStreamPlayer jumpSoundEffect, grassWalkSoundEffect, grassRunSoundEffect;
+	private TileMapLayer grassyTerrain, hardFloorTerrain;
 	private AnimatedSprite2D playerAnimations;
 	private CollisionShape2D playerCollider;
 	private Vector2 direction, velocity;
@@ -17,6 +19,9 @@ public partial class playermovement : CharacterBody2D {
 
     public override void _Ready() {
 		playerAnimations = GetNode<AnimatedSprite2D>("AnimatedSprites");
+		jumpSoundEffect = GetNode<AudioStreamPlayer>("Sounds/SFX_Jump");
+		grassWalkSoundEffect = GetNode<AudioStreamPlayer>("Sounds/SFX_Grass_Walk");
+		grassRunSoundEffect = GetNode<AudioStreamPlayer>("Sounds/SFX_Grass_Run");
 		cameraScript = new cameramovement();
 		numberOfJumps = maximumJumps;
     }
@@ -30,7 +35,7 @@ public partial class playermovement : CharacterBody2D {
 		if(!cameraScript.canMoveCamera) {
 			if(IsOnFloor()) {
 				coyoteCounter = coyoteTime; //Resets the CoyoteCounter to 0, for jumping.
-				performCrouchandSlide(); //Handles the crouching and sliding mechanism.
+				//performCrouchandSlide(); //Handles the crouching and sliding mechanism.
 				performMovement(); //Handles player movement (walk, run, acceleration, friction).
 				flipCharacter(); //Handles flipping sprites and animations.
 			}
@@ -53,10 +58,13 @@ public partial class playermovement : CharacterBody2D {
 		float runningAcceleration = 6.0f;
 		currentVelocity = direction.X * walkingSpeed;
 		if(direction != Vector2.Zero) {
+			grassWalkSoundEffect.Play();
+			whenAudioFinished();
 			if(Input.IsActionPressed("player_run")) {
 				currentVelocity = direction.X * runningSpeed;
 				velocity.X = Mathf.MoveToward(velocity.X, currentVelocity, runningAcceleration);
 				playerAnimations.Play("Run");
+				grassRunSoundEffect.Play();
 			} else { 
 				velocity.X = Mathf.MoveToward(velocity.X, currentVelocity, acceleration);
 				playerAnimations.Play("Walk");
@@ -80,8 +88,13 @@ public partial class playermovement : CharacterBody2D {
 				playerAnimations.Play("Fall");
 			}
 		} if(Input.IsActionJustPressed("player_jump") && numberOfJumps < maximumJumps) {
-			if(numberOfJumps == 1) playerAnimations.Play("Double-Jump");
-			if(numberOfJumps == 0) playerAnimations.Play("Jump");
+			if(numberOfJumps == 1) { 
+				playerAnimations.Play("Double-Jump");
+				//jumpSoundEffect.PitchScale {jumpSoundEffect; 1.2f;}; 
+			} if(numberOfJumps == 0) { 
+				playerAnimations.Play("Jump");
+				jumpSoundEffect.Play(); 
+			}
 			whenAnimationFinished();
 			velocity.Y = jumpVelocity;
 			numberOfJumps += 1;
@@ -97,43 +110,50 @@ public partial class playermovement : CharacterBody2D {
 		} 
 	}
 
-	public void performAttack() {
+	/*public void performAttack() {
 		if(IsOnFloor() && Input.IsActionJustPressed("player_punch")) {
 			velocity = new Vector2(0.0f, 0.0f);
 			//playerAnimations.Play("Punch");
 			//playerAnimations.FlipH = false;
 			whenAnimationFinished();
 		} 
-	}
+	}*/
 
-	public void performCrouchandSlide() {
-		if(velocity.X <= walkingSpeed || velocity.X >= -walkingSpeed) { 
-			if(Input.IsActionPressed("player_down")) {
+	/*public void performCrouchandSlide() {
+		if(Input.IsActionPressed("player_down")) {
+			if(velocity.X <= walkingSpeed || velocity.X >= -walkingSpeed) { 
 				velocity.X = Mathf.MoveToward(velocity.X, 0.0f, friction);
 				playerAnimations.Play("Crouch");
-			} else if(Input.IsActionJustReleased("player_down")) playerAnimations.Play("Crouch (Recover)");
-		} else if(velocity.X == runningSpeed) {
-			velocity.X = Mathf.MoveToward(velocity.X, 0.0f, groundSlideSpeed);
-			playerAnimations.Play("Slide");
-			if(playerAnimations.IsPlaying()) return;
-			playerAnimations.Play("Slide (Loop)");
-			if(playerAnimations.IsPlaying()) return;
-			playerAnimations.Play("Slide (Recover)");
-			whenAnimationFinished();
+				if(Input.IsActionJustReleased("player_down")) playerAnimations.Play("Crouch (Recover)");
+			} else if(velocity.X == runningSpeed) {
+				velocity.X = Mathf.MoveToward(velocity.X, 0.0f, groundSlideSpeed);
+				playerAnimations.Play("Slide");
+				if(playerAnimations.IsPlaying()) return;
+				playerAnimations.Play("Slide (Loop)");
+				if(playerAnimations.IsPlaying()) return;
+				playerAnimations.Play("Slide (Recover)");
+				whenAnimationFinished();
+			}
 		}
-	}
+	}*/
 
-	//Signal Method of AnimatedSprite2D node when playing one animation after another.
-	private void whenAnimationChanges() {
-
+	//Signal Method of AudioStreamPlayer, executes code for what to do after the audio clip finishes playing.
+	private void whenAudioFinished() {
+		GetTree().GetNodesInGroup("Ground - Grass");
+		if(IsOnFloor() && direction.X != 0.0f) {
+			//If Tileset tag is "Ground - Grass," execute these lines of code.
+			grassWalkSoundEffect.Play(); //Infinite loop of grass sound effect when walking.
+			if(Input.IsActionPressed("player_run")) grassRunSoundEffect.Play(); //Infinite loop of grass sound effect when running.
+			
+		}
 	}
 
 	//Signal Method of AnimatedSprite2D node when executing something once the animation is done.
 	private void whenAnimationFinished() {
 		if(playerAnimations.Animation == "Skid") playerAnimations.Play("Idle");
+		if(IsOnFloor() && direction.X == 0.0f) playerAnimations.Play("Idle");
+		if(!IsOnFloor() && velocity.Y < 0.0f) playerAnimations.Play("Fall");
 		if(playerAnimations.IsPlaying()) return;
 		playerAnimations.Stop(); //This way the animation does not loop.
-		if(!IsOnFloor() && velocity.Y < 0.0f) playerAnimations.Play("Fall");
-		if(IsOnFloor() && direction.X == 0.0f) playerAnimations.Play("Idle");
 	}
 }
