@@ -2,52 +2,43 @@ using Godot;
 using System;
 
 public partial class MoveState : BaseStateClass {
+	public float walkingSpeed = 53.0f, runningSpeed = 159.0f, acceleration = 3.0f, runningAcceleration = 6.0f, friction = 5.0f;
 	private AudioStreamPlayer grassWalkSoundEffect, grassRunSoundEffect;
-	public float walkingSpeed = 53.0f, runningSpeed = 159.0f, acceleration = 3.0f, friction = 5.0f;
+	private BaseStateClass baseState;
 
-	public new void EnterState() {
-	}
-	
-	private void UpdateState(double delta) {
-		performMovement();
-		flipCharacter();
-	}
+    public override void _Ready() => baseState = new BaseStateClass();
 
-	private new void ExitState() {
+	//Handles code when entering Move-State.
+    private void EnterState() { //Enters the Move-State, code for walking animation and movement.
+		baseState.playerAnimations.Play("Walk");
+		if(characterVelocity.X == runningSpeed) baseState.playerAnimations.Play("Run");
 	}
 
-	private void _UnhandledInput(InputEvent @event) {
-		if(jumpButton) finiteStateMachine.StateTransition("Sid_Jump"); //Change to Jump State.
-		if(kickButton) finiteStateMachine.StateTransition("Sid_Kick"); //Change to Kick State.
-		if(punchButton) finiteStateMachine.StateTransition("Sid_Punch"); //Change to Punch State
+	//Handles code when exiting Move-State.
+	private void ExitState() {
+		characterVelocity.X = Mathf.MoveToward(characterVelocity.X, 0.0f, friction);
+		baseState.playerAnimations.Play("Skid");
 	}
 
-	private void performMovement() {
-		float runningAcceleration = 6.0f;
-		currentVelocity = moveDirection.X * walkingSpeed;
-		if(moveDirection != Vector2.Zero) {
-			grassWalkSoundEffect.Play();
-			//whenAudioFinished();
-			if(runButton) {
-				currentVelocity = moveDirection.X * runningSpeed;
-				velocity.X = Mathf.MoveToward(velocity.X, currentVelocity, runningAcceleration);
-				playerAnimations.Play("Run");
-				grassRunSoundEffect.Play();
-			} else { 
-				velocity.X = Mathf.MoveToward(velocity.X, currentVelocity, acceleration);
-				playerAnimations.Play("Walk");
-			}
-		} else { 
-			velocity.X = Mathf.MoveToward(velocity.X, 0.0f, friction);
-			if(velocity.X != 0.0f && (velocity.X < walkingSpeed || velocity.X > -walkingSpeed)) playerAnimations.Play("Skid");
-			finiteStateMachine.StateTransition("Sid_Idle");
-		}
-	}
+	//Handles code that deals with physics-related movement.
+	private void PhysicsUpdate(float delta) {
+		if(runButton) {
+			currentVelocity = moveDirection.X * runningSpeed;
+			characterVelocity.X = Mathf.MoveToward(characterVelocity.X, currentVelocity, runningAcceleration);
+		} else {
+			currentVelocity = moveDirection.X * walkingSpeed;
+			characterVelocity.X = Mathf.MoveToward(characterVelocity.X, currentVelocity, acceleration);
+		} flipCharacter();
 
-	public void flipCharacter() {
-		if(moveDirection.X != 0.0f) {
-			if(moveDirection.X < 0.0f) playerAnimations.FlipH = true;
-			else if(moveDirection.X > 0.0f) playerAnimations.FlipH = false;
+		characterVelocity.Y += playerReference.gravityValue * delta; //Acting gravity force applied.
+		playerReference.MoveAndSlide(); //Calls the function so the character can move.
+		
+		if(isGrounded && characterVelocity.X == 0.0f) {
+			finiteStateMachine.StateTransition("Sid_Idle"); //Change to Idle State.
+		} else if(!isGrounded && characterVelocity.Y <= 0.0f) {
+			finiteStateMachine.StateTransition("Sid_Jump"); //Change to Jump State.
+		} else if(!isGrounded && characterVelocity.Y >= 0.0f) {
+			finiteStateMachine.StateTransition("Sid_Fall"); //Change to Fall State.
 		}
 	}
 }

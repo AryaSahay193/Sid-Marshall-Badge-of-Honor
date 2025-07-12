@@ -22,9 +22,9 @@ public partial class StateHandler : Node {
 		currentState.EnterState();
 	}
 
-	public override void _Process(double delta) => currentState.Update((float)delta);
+	public override void _Process(double delta) => currentState.FrameUpdate((float)delta);
 	public override void _PhysicsProcess(double delta) => currentState.PhysicsUpdate((float)delta);
-	public override void _UnhandledInput(InputEvent @event) => currentState.InputHandler(@event);
+	public override void _UnhandledInput(InputEvent @event) => currentState.HandleInput(@event);
 
 	public void StateTransition(string dictionaryKey) {
 		if(!stateName.ContainsKey(dictionaryKey) || currentState == stateName[dictionaryKey]) return; //If key is not found, or if key is already in the dictionary, do nothing.
