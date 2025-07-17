@@ -2,20 +2,25 @@ using Godot;
 using System;
 
 public partial class GameWorldManager : Node {
-	private Node2D sceneCandyland, sceneSubwayStation, sceneSeaport;
-	public CanvasLayer cameraPanUI, playerUI;
-	public CharacterBody2D sidMarshall;
+	private CanvasLayer cameraPanUI, playerUI, achievementUI;
+	private EventManager eventHandler;
 	private Camera2D playerCamera;
+	private int jigsawCounter = 0; //By default.
 
 	public override void _Ready() {
-		//Initializing Scenes
-		sceneSubwayStation = GetNode<Node2D>("Areas/SubwayStation");
-		sceneCandyland = GetNode<Node2D>("Areas/Candyland");
-		sceneSeaport = GetNode<Node2D>("Areas/Seaport");
-		
-		//Initializing UI Nodes
+		//Initializing Nodes.
 		playerCamera = GetNode<Camera2D>("SidMarshall/Camera");
+		achievementUI = GetNode<CanvasLayer>("UIElements/AchievementUI");
 		cameraPanUI = GetNode<CanvasLayer>("UIElements/CameraUI");
 		playerUI = GetNode<CanvasLayer>("UIElements/PlayerUI");
+	}
+
+	public void jigsawCollected(int amount) {
+		jigsawCounter += amount; //Adds one to the Jigsaw counter everytime a Jigsaw is collected.
+		eventHandler.EmitSignal("puzzleCollected", jigsawCounter); //Sends a signal with the current method, and the counter.
+	}
+
+	public override void _Process(double delta) {
+
 	}
 }
