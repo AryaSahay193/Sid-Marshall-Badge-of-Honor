@@ -11,18 +11,17 @@ public partial class FallState : BaseStateClass {
 	//Handles code when entering the Fall State.
     private void EnterState() => baseState.playerAnimations.Play("Fall");
 	
-	private void FrameUpdate(float delta) {
-		coyoteCounter -= (float)delta;
-		if(isGrounded) coyoteCounter = 0.0f;
+	private void UpdateState(float delta) {
+		if(isGrounded || isWalled) coyoteCounter = 0.0f;
+		else coyoteCounter -= delta;
+
+		if(isGrounded) finiteStateMachine.StateTransition("Sid_Idle");
+		//if(characterHealth == 0) finiteState.Machine.StateTransition("Sid_Death");
 	}
 
 	//Handles code that deals with physics-related movement.
 	private void PhysicsUpdate(float delta) {
-		float fallMovementX = Mathf.MoveToward(characterVelocity.X, airVelocity, airAcceleration) * moveDirection.X;
-		characterVelocity.Y += playerReference.gravityValue * delta; //Acting gravity force applied.
-		fallMovement += new Vector2(fallMovementX, characterVelocity.Y);
-		playerReference.MoveAndSlide(); //Calls the function so the character can move.
-
-		if(isGrounded) finiteStateMachine.StateTransition("Sid_Idle");
+		float fallMovementX = Mathf.MoveToward(playerReference.characterVelocity.X, airVelocity, airAcceleration) * playerReference.moveDirection.X;
+		fallMovement += new Vector2(fallMovementX, playerReference.gravityValue * delta);
 	}
 }

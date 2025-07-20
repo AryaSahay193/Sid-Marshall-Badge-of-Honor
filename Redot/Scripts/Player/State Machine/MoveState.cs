@@ -11,34 +11,33 @@ public partial class MoveState : BaseStateClass {
 	//Handles code when entering Move-State.
     private void EnterState() { //Enters the Move-State, code for walking animation and movement.
 		baseState.playerAnimations.Play("Walk");
-		if(characterVelocity.X == runningSpeed) baseState.playerAnimations.Play("Run");
+		if(playerReference.characterVelocity.X == runningSpeed) baseState.playerAnimations.Play("Run");
 	}
 
 	//Handles code when exiting Move-State.
 	private void ExitState() {
-		characterVelocity.X = Mathf.MoveToward(characterVelocity.X, 0.0f, friction);
+		playerReference.characterVelocity.X = Mathf.MoveToward(playerReference.characterVelocity.X, 0.0f, friction);
 		baseState.playerAnimations.Play("Skid");
 	}
 
-	//Handles code that deals with physics-related movement.
-	private void PhysicsUpdate(float delta) {
-		if(runButton) {
-			currentVelocity = moveDirection.X * runningSpeed;
-			characterVelocity.X = Mathf.MoveToward(characterVelocity.X, currentVelocity, runningAcceleration);
-		} else {
-			currentVelocity = moveDirection.X * walkingSpeed;
-			characterVelocity.X = Mathf.MoveToward(characterVelocity.X, currentVelocity, acceleration);
-		} flipCharacter();
-
-		characterVelocity.Y += playerReference.gravityValue * delta; //Acting gravity force applied.
-		playerReference.MoveAndSlide(); //Calls the function so the character can move.
-		
-		if(isGrounded && characterVelocity.X == 0.0f) {
-			finiteStateMachine.StateTransition("Sid_Idle"); //Change to Idle State.
-		} else if(!isGrounded && characterVelocity.Y <= 0.0f) {
-			finiteStateMachine.StateTransition("Sid_Jump"); //Change to Jump State.
-		} else if(!isGrounded && characterVelocity.Y >= 0.0f) {
-			finiteStateMachine.StateTransition("Sid_Fall"); //Change to Fall State.
+	private void UpdateState(float delta) {
+		if(isGrounded && playerReference.characterVelocity.X == 0.0f) {
+			finiteStateMachine.StateTransition(IdleState); //Change to Idle State.
+		} else if(!isGrounded && playerReference.characterVelocity.Y <= 0.0f) {
+			finiteStateMachine.StateTransition(JumpState); //Change to Jump State.
+		} else if(!isGrounded && playerReference.characterVelocity.Y >= 0.0f) {
+			finiteStateMachine.StateTransition(FallState); //Change to Fall State.
 		}
+	}
+
+	//Handles code that deals with physics-related movement.
+	private void PhysicsUpdate(float delta) {	
+		if(runButton) {
+			currentVelocity = playerReference.moveDirection.X * runningSpeed;
+			playerReference.characterVelocity.X = Mathf.MoveToward(playerReference.characterVelocity.X, currentVelocity, runningAcceleration);
+		} else {
+			currentVelocity = playerReference.moveDirection.X * walkingSpeed;
+			playerReference.characterVelocity.X = Mathf.MoveToward(playerReference.characterVelocity.X, currentVelocity, acceleration);
+		} baseState.flipCharacter(playerReference.characterVelocity.X);
 	}
 }

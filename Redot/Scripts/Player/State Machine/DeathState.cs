@@ -2,12 +2,12 @@ using Godot;
 using System;
 
 public partial class DeathState : BaseStateClass {
-	public void EnterState() {
-	}
+    private BaseStateClass baseState;
 
-	public void UpdateState(float delta) {
-	}
+	public override void _Ready() => baseState = new BaseStateClass();
 
-	public void ExitState() {
+    public void EnterState() {
+		playerReference.characterVelocity = Vector2.Zero;
+		baseState.playerAnimations.Play("Death");
 	}
 }

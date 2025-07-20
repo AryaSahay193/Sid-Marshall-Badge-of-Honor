@@ -3,11 +3,12 @@ using System;
 using System.Collections.Generic;
 
 public partial class StateHandler : Node {
-	[Export] public NodePath startingState;
-	private Dictionary<String, BaseStateClass> stateName;
-	private BaseStateClass currentState;
+	[Export] public NodePath startingState; //Starting path is Idle, in Redot Inspector.
+	private Dictionary<String, BaseStateClass> stateName; //Nodepath, as a string, which is stored in a Dictionary.
+	private BaseStateClass currentState; //Reference to the State class.
 
 	public override void _Ready() {
+		currentState = new BaseStateClass();
 		stateName = new Dictionary<String, BaseStateClass>();
 		foreach(Node node in GetChildren()) {
 			if(node is BaseStateClass state) {
@@ -22,7 +23,8 @@ public partial class StateHandler : Node {
 		currentState.EnterState();
 	}
 
-	public override void _Process(double delta) => currentState.FrameUpdate((float)delta);
+	//Delegates the methods from BaseStateClass to methods commonly used.
+	public override void _Process(double delta) => currentState.UpdateState((float)delta); 
 	public override void _PhysicsProcess(double delta) => currentState.PhysicsUpdate((float)delta);
 	public override void _UnhandledInput(InputEvent @event) => currentState.HandleInput(@event);
 
