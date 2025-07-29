@@ -9,8 +9,8 @@ public partial class JumpState : BaseStateClass {
 
 	//Handles code when entering the Jump State.
     public override void EnterState() {
-		characterVelocity.Y = jumpVelocity;
-		playerAnimations.Play("Jump");
+		playerReference.characterVelocity.Y = jumpVelocity;
+		playerReference.playerAnimations.Play("Jump");
 		jumpSoundEffect.Play();
 		numberOfJumps += 1;
 	}
@@ -18,11 +18,11 @@ public partial class JumpState : BaseStateClass {
 	public override void UpdateState(float delta) { 
 		if(numberOfJumps == 1) { 
 			jumpSoundEffect.PitchScale *= pitchValue;
-			playerAnimations.Play("Double_Jump"); 
+			playerReference.playerAnimations.Play("Double_Jump"); 
 		} if(numberOfJumps == 0) numberOfJumps += 1;
 
-		if(isGrounded) finiteStateMachine.StateTransition(IdleState); 
-		else if(!isGrounded && characterVelocity.Y >= 0.0f) finiteStateMachine.StateTransition(FallState);
+		if(playerReference.IsOnFloor()) finiteStateMachine.StateTransition(IdleState); 
+		else if(!playerReference.IsOnFloor() && playerReference.characterVelocity.Y >= 0.0f) finiteStateMachine.StateTransition(FallState);
 		//else if(Input.IsActionJustPressed("Kick")) finiteStateMachine.StateTransition("Sid_Kick");
 		//else if(Input.IsActionJustPressed("Punch")) finiteStateMachine.StateTransition("Sid_Punch");
 	}

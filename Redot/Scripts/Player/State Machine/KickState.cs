@@ -2,12 +2,12 @@ using Godot;
 using System;
 
 public partial class KickState : BaseStateClass {
-	public void EnterState() {
+	public override void EnterState() {
 	}
 
-	public void UpdateState(float delta) {
+	public override void UpdateState(float delta) {
 	}
 
-	public void ExitState() {
+	public override void ExitState() {
 	}
 }

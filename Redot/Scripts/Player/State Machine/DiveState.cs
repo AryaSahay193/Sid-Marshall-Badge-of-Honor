@@ -1,16 +1,12 @@
 using Godot;
 using System;
 
-public partial class DiveState : BaseStateClass {
-	private BaseStateClass baseState;
+public partial class DiveState : BaseStateClass { 
+	public override void EnterState() => playerReference.playerAnimations.Play("Dive_Roll");
 
-	public override void _Ready() => baseState = new BaseStateClass();
-    
-	public void EnterState() => baseState.playerAnimations.Play("Dive_Roll");
-
-	public void PhysicsUpdate(float delta) {
+	public override void PhysicsUpdate(float delta) {
 	}
 	
-	public void ExitState() {
+	public override void ExitState() {
 	}
 }

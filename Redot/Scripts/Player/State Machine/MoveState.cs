@@ -7,22 +7,22 @@ public partial class MoveState : BaseStateClass {
 
 	//Handles code when entering Move-State.
     public override void EnterState() { //Enters the Move-State, code for walking animation and movement.
-		playerAnimations.Play("Walk");
-		if(characterVelocity.X == runningSpeed) playerAnimations.Play("Run");
+		playerReference.playerAnimations.Play("Walk");
+		if(playerReference.characterVelocity.X == runningSpeed) playerReference.playerAnimations.Play("Run");
 	}
 
 	//Handles code when exiting Move-State.
 	public override void ExitState() {
-		characterVelocity.X = Mathf.MoveToward(characterVelocity.X, 0.0f, friction);
-		playerAnimations.Play("Skid");
+		playerReference.characterVelocity.X = Mathf.MoveToward(playerReference.characterVelocity.X, 0.0f, friction);
+		playerReference.playerAnimations.Play("Skid");
 	}
 
 	public override void UpdateState(float delta) {
-		if(isGrounded && characterVelocity.X == 0.0f) {
+		if(playerReference.IsOnFloor() && playerReference.characterVelocity.X == 0.0f) {
 			finiteStateMachine.StateTransition(IdleState); //Change to Idle State.
-		} else if(!isGrounded && characterVelocity.Y <= 0.0f) {
+		} else if(!playerReference.IsOnFloor() && playerReference.characterVelocity.Y <= 0.0f) {
 			finiteStateMachine.StateTransition(JumpState); //Change to Jump State.
-		} else if(!isGrounded && characterVelocity.Y >= 0.0f) {
+		} else if(!playerReference.IsOnFloor() && playerReference.characterVelocity.Y >= 0.0f) {
 			finiteStateMachine.StateTransition(FallState); //Change to Fall State.
 		}
 	}
@@ -30,12 +30,12 @@ public partial class MoveState : BaseStateClass {
 	//Handles code that deals with physics-related movement.
 	public override void PhysicsUpdate(float delta) {
 		float currentVelocity;	
-		if(runButton) {
-			currentVelocity = moveDirection.X * runningSpeed;
-			characterVelocity.X = Mathf.MoveToward(characterVelocity.X, currentVelocity, runningAcceleration);
+		if(playerReference.runButton) {
+			currentVelocity = playerReference.moveDirection.X * runningSpeed;
+			playerReference.characterVelocity.X = Mathf.MoveToward(playerReference.characterVelocity.X, currentVelocity, runningAcceleration);
 		} else {
-			currentVelocity = moveDirection.X * walkingSpeed;
-			characterVelocity.X = Mathf.MoveToward(characterVelocity.X, currentVelocity, acceleration);
-		} flipCharacter(characterVelocity.X);
+			currentVelocity = playerReference.moveDirection.X * walkingSpeed;
+			playerReference.characterVelocity.X = Mathf.MoveToward(playerReference.characterVelocity.X, currentVelocity, acceleration);
+		} playerReference.flipCharacter(playerReference.characterVelocity.X);
 	}
 }

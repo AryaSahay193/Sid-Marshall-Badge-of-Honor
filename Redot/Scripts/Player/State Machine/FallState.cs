@@ -6,19 +6,19 @@ public partial class FallState : BaseStateClass {
 	private Vector2 fallMovement;
 
 	//Handles code when entering the Fall State.
-    public override void EnterState() => playerAnimations.Play("Fall");
+    public override void EnterState() => playerReference.playerAnimations.Play("Fall");
 	
 	public override void UpdateState(float delta) {
-		if(isGrounded || isWalled) coyoteCounter = 0.0f;
+		if(playerReference.IsOnFloor() || playerReference.IsOnWall()) coyoteCounter = 0.0f;
 		else coyoteCounter -= delta;
 
-		if(isGrounded) finiteStateMachine.StateTransition("Sid_Idle");
+		if(playerReference.IsOnFloor()) finiteStateMachine.StateTransition("Sid_Idle");
 		//if(characterHealth == 0) finiteState.Machine.StateTransition("Sid_Death");
 	}
 
 	//Handles code that deals with physics-related movement.
 	public override void PhysicsUpdate(float delta) {
-		float fallMovementX = Mathf.MoveToward(characterVelocity.X, airVelocity, airAcceleration) * moveDirection.X;
-		fallMovement += new Vector2(fallMovementX, gravityValue * delta);
+		float fallMovementX = Mathf.MoveToward(playerReference.characterVelocity.X, airVelocity, airAcceleration) * playerReference.moveDirection.X;
+		fallMovement += new Vector2(fallMovementX, playerReference.gravityValue * delta);
 	}
 }

@@ -5,16 +5,16 @@ using System.Runtime.CompilerServices;
 public partial class IdleState : BaseStateClass {
 	//Handles code when entering Idle-State.
     public override void EnterState() { 
-		characterVelocity = Vector2.Zero;
-		playerAnimations.Play("Idle"); 
+		playerReference.characterVelocity = Vector2.Zero;
+		playerReference.playerAnimations.Play("Idle"); 
 	}
 
 	public override void UpdateState(float delta) {
-		if(isGrounded && characterVelocity.X != 0.0f) {
+		if(playerReference.IsOnFloor() && playerReference.characterVelocity.X != 0.0f) {
 			finiteStateMachine.StateTransition("Sid_Move"); //Change to Move State.
-		} else if(!isGrounded && characterVelocity.Y <= 0.0f) {
+		} else if(!playerReference.IsOnFloor() && playerReference.characterVelocity.Y <= 0.0f) {
 			finiteStateMachine.StateTransition("Sid_Jump"); //Change to Jump State.
-		} else if(!isGrounded && characterVelocity.Y >= 0.0f) {
+		} else if(!playerReference.IsOnFloor() && playerReference.characterVelocity.Y >= 0.0f) {
 			finiteStateMachine.StateTransition("Sid_Fall"); //Chagne to Fall State.
 		}
 	}
