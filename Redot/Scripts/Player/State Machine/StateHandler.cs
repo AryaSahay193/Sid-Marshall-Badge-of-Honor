@@ -26,7 +26,7 @@ public partial class StateHandler : Node {
 	//Delegates the methods from BaseStateClass to methods commonly used.
 	public override void _Process(double delta) => currentState.UpdateState((float)delta); 
 	public override void _PhysicsProcess(double delta) => currentState.PhysicsUpdate((float)delta);
-	public override void _UnhandledInput(InputEvent @event) => currentState.HandleInput(@event);
+	//public override void _UnhandledInput(InputEvent @event) => currentState.HandleInput(@event);
 
 	public void StateTransition(string dictionaryKey) {
 		if(!stateName.ContainsKey(dictionaryKey) || currentState == stateName[dictionaryKey]) return; //If key is not found, or if key is already in the dictionary, do nothing.
