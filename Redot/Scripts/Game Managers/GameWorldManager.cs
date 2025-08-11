@@ -1,26 +1,27 @@
 using Godot;
 using System;
 
+//Game Manager is responsible for managing the game world, such as scene-transitions, game state (pause, menu), and game flow.
 public partial class GameWorldManager : Node {
-	private CanvasLayer cameraPanUI, playerUI, achievementUI;
+	public CanvasLayer cameraPanUI, playerUI, achievementUI;
+	private GlobalData singletonReference;
 	private EventManager eventHandler;
 	private Camera2D playerCamera;
-	private int jigsawCounter = 0; //By default.
 
 	public override void _Ready() {
 		//Initializing Nodes.
-		playerCamera = GetNode<Camera2D>("SidMarshall/Camera");
-		achievementUI = GetNode<CanvasLayer>("UIElements/AchievementUI");
-		cameraPanUI = GetNode<CanvasLayer>("UIElements/CameraUI");
-		playerUI = GetNode<CanvasLayer>("UIElements/PlayerUI");
+		playerCamera = GetNode<Camera2D>("/root/GameWorld/SidMarshall/PlayerCamera");
+		achievementUI = GetNode<CanvasLayer>("/root/GameWorld/UIElements/AchievementUI");
+		cameraPanUI = GetNode<CanvasLayer>("/root/GameWorld/UIElements/CameraUI");
 	}
 
 	public void jigsawCollected(int amount) {
-		jigsawCounter += amount; //Adds one to the Jigsaw counter everytime a Jigsaw is collected.
-		eventHandler.EmitSignal("puzzleCollected", jigsawCounter); //Sends a signal with the current method, and the counter.
+		singletonReference.jigsawCounter += amount; //Adds one to the Jigsaw counter everytime a Jigsaw is collected.
+		eventHandler.EmitSignal("jigsawCollected", singletonReference.jigsawCounter); //Sends a signal with the current method, and the counter.
 	}
 
-	public override void _Process(double delta) {
-
+	public void gangInitiated(bool inBattleMode) {
+		eventHandler.EmitSignal("gangInitiated", inBattleMode);
+		inBattleMode = true;
 	}
 }
