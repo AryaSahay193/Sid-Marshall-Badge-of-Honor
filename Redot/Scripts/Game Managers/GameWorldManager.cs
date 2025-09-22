@@ -9,8 +9,9 @@ public partial class GameWorldManager : Node {
 	private Camera2D playerCamera;
 
 	public override void _Ready() {
-		//Initializing Nodes.
-		playerCamera = GetNode<Camera2D>("/root/GameWorld/SidMarshall/PlayerCamera");
+		singletonReference = GetNode<GlobalData>("/root/GlobalData");
+		eventHandler = GetNode<EventManager>("/root/EventManager");
+		playerCamera = singletonReference.playerCameraReference;
 		achievementUI = GetNode<CanvasLayer>("/root/GameWorld/UIElements/AchievementUI");
 		cameraPanUI = GetNode<CanvasLayer>("/root/GameWorld/UIElements/CameraUI");
 	}
