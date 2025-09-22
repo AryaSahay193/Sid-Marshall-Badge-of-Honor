@@ -1,0 +1,160 @@
+[gd_scene load_steps=16 format=3 uid="uid://dienhyqegjb4c"]
+
+[ext_resource type="Texture2D" uid="uid://ndxwtuo5ltei" path="res://Artwork/Backgrounds/Candyland Morning/Sand Layer.png" id="1_dqsch"]
+[ext_resource type="Texture2D" uid="uid://cigbffjh0hson" path="res://Artwork/Backgrounds/Candyland Morning/Sea Layer - 01.png" id="2_pyxdg"]
+[ext_resource type="Texture2D" uid="uid://d872cvseqxvh" path="res://Artwork/Backgrounds/Candyland Morning/Sea Layer - 02.png" id="3_gbgac"]
+[ext_resource type="Texture2D" uid="uid://dop8qhwrhvj61" path="res://Artwork/Backgrounds/Candyland Morning/Sea Layer - 03.png" id="4_qjoph"]
+[ext_resource type="Texture2D" uid="uid://c0owx2fax1yov" path="res://Artwork/Backgrounds/Candyland Morning/Sea Layer - 04.png" id="5_l1pmk"]
+[ext_resource type="Texture2D" uid="uid://ds4sdd8x0wywk" path="res://Artwork/Backgrounds/Candyland Morning/Sea Layer - 05.png" id="6_2qpvx"]
+[ext_resource type="Texture2D" uid="uid://bq64s1he7pgx8" path="res://Artwork/Backgrounds/Candyland Morning/Sea Layer - 06.png" id="7_26l5k"]
+[ext_resource type="Texture2D" uid="uid://cqxbh63leq7v1" path="res://Artwork/Backgrounds/Candyland Morning/Sea Layer - 07.png" id="8_7fgik"]
+[ext_resource type="Texture2D" uid="uid://6li4fkvuvwny" path="res://Artwork/Backgrounds/Candyland Morning/Sea Layer - 08.png" id="9_hka8a"]
+[ext_resource type="Texture2D" uid="uid://vdavhcxukf3r" path="res://Artwork/Backgrounds/Candyland Morning/Sea Layer - 09.png" id="10_j8xjk"]
+[ext_resource type="Texture2D" uid="uid://drteyu2pct46g" path="res://Artwork/Backgrounds/Candyland Morning/Islands Layer.png" id="11_djhfa"]
+[ext_resource type="Texture2D" uid="uid://ctjs1txd2in3d" path="res://Artwork/Backgrounds/Candyland Morning/Clouds (Front) Layer.png" id="12_0slty"]
+[ext_resource type="Texture2D" uid="uid://cenfp71pvxkfk" path="res://Artwork/Backgrounds/Candyland Morning/Clouds (Back) Layer.png" id="13_3mles"]
+[ext_resource type="Texture2D" uid="uid://cjgbncla3y8nh" path="res://Artwork/Backgrounds/Candyland Morning/Sky Layer.png" id="14_kvi8s"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_3aft6"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_pyxdg")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_gbgac")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_qjoph")
+}, {
+"duration": 1.0,
+"texture": ExtResource("5_l1pmk")
+}, {
+"duration": 1.0,
+"texture": ExtResource("4_qjoph")
+}, {
+"duration": 1.0,
+"texture": ExtResource("3_gbgac")
+}, {
+"duration": 1.0,
+"texture": ExtResource("2_pyxdg")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_2qpvx")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_26l5k")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_7fgik")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_hka8a")
+}, {
+"duration": 1.0,
+"texture": ExtResource("10_j8xjk")
+}, {
+"duration": 1.0,
+"texture": ExtResource("9_hka8a")
+}, {
+"duration": 1.0,
+"texture": ExtResource("8_7fgik")
+}, {
+"duration": 1.0,
+"texture": ExtResource("7_26l5k")
+}, {
+"duration": 1.0,
+"texture": ExtResource("6_2qpvx")
+}],
+"loop": true,
+"name": &"Ocean",
+"speed": 10.0
+}]
+
+[node name="Candyland Morning" type="ParallaxBackground"]
+
+[node name="01 - Sand Layer" type="ParallaxLayer" parent="."]
+texture_repeat = 2
+motion_scale = Vector2(1, 0)
+motion_mirroring = Vector2(320, 0)
+
+[node name="Sand" type="Sprite2D" parent="01 - Sand Layer"]
+z_index = 5
+texture_filter = 1
+texture_repeat = 2
+texture = ExtResource("1_dqsch")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 640, 180)
+
+[node name="02 - Ocean Layer" type="ParallaxLayer" parent="."]
+texture_filter = 1
+motion_scale = Vector2(0.45, 0)
+motion_mirroring = Vector2(320, 0)
+
+[node name="Ocean" type="AnimatedSprite2D" parent="02 - Ocean Layer"]
+z_index = 4
+texture_filter = 1
+texture_repeat = 2
+sprite_frames = SubResource("SpriteFrames_3aft6")
+animation = &"Ocean"
+autoplay = "Ocean"
+frame_progress = 0.972742
+centered = false
+
+[node name="03 - Island Layer" type="ParallaxLayer" parent="."]
+texture_repeat = 2
+motion_scale = Vector2(0.2, 0)
+motion_mirroring = Vector2(320, 0)
+
+[node name="Islands" type="Sprite2D" parent="03 - Island Layer"]
+z_index = 3
+texture_filter = 1
+texture_repeat = 2
+texture = ExtResource("11_djhfa")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 640, 180)
+
+[node name="04 - Clouds Foreground Layer" type="ParallaxLayer" parent="."]
+texture_repeat = 2
+motion_scale = Vector2(0.15, 0)
+motion_mirroring = Vector2(320, 0)
+
+[node name="Front Clouds" type="Sprite2D" parent="04 - Clouds Foreground Layer"]
+z_index = 2
+texture_filter = 1
+texture_repeat = 2
+texture = ExtResource("12_0slty")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 640, 180)
+
+[node name="05 - Clouds Background Layer" type="ParallaxLayer" parent="."]
+texture_repeat = 2
+motion_scale = Vector2(0.1, 0)
+motion_mirroring = Vector2(320, 0)
+
+[node name="Back Clouds" type="Sprite2D" parent="05 - Clouds Background Layer"]
+z_index = 1
+texture_filter = 1
+texture_repeat = 2
+texture = ExtResource("13_3mles")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 640, 180)
+
+[node name="06 - Sky Layer" type="ParallaxLayer" parent="."]
+texture_repeat = 2
+motion_scale = Vector2(0, 0)
+motion_mirroring = Vector2(320, 0)
+
+[node name="Sky" type="Sprite2D" parent="06 - Sky Layer"]
+texture_filter = 1
+texture_repeat = 2
+texture = ExtResource("14_kvi8s")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 640, 180)
+
+[node name="02 - Ocean" type="Parallax2D" parent="."]
