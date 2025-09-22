@@ -1,0 +1,39 @@
+[gd_scene load_steps=4 format=3 uid="uid://b2qdd2p8ey2lf"]
+
+[ext_resource type="Texture2D" uid="uid://8cprst3llr4p" path="res://Artwork/UI_Elements/Achievement Pop-Up.png" id="1_yup80"]
+[ext_resource type="FontFile" uid="uid://cve0n6vbd7ws8" path="res://Fonts/Carved Chocolate - Normal.ttf" id="2_sukmr"]
+[ext_resource type="FontFile" uid="uid://nlwxu22ljlee" path="res://Fonts/Carved Chocolate - Bold.ttf" id="3_3ds57"]
+
+[node name="AchievementUI" type="CanvasLayer"]
+
+[node name="Achievement_Anchor" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Achievement_Properties" type="Node2D" parent="Achievement_Anchor"]
+
+[node name="Achievement_Bar" type="Sprite2D" parent="Achievement_Anchor/Achievement_Properties"]
+position = Vector2(160, 30)
+texture = ExtResource("1_yup80")
+
+[node name="Achievement_Icon" type="Sprite2D" parent="Achievement_Anchor/Achievement_Properties"]
+
+[node name="AchievementLabel" type="RichTextLabel" parent="Achievement_Anchor/Achievement_Properties"]
+offset_left = 133.0
+offset_top = 15.0
+offset_right = 231.0
+offset_bottom = 23.0
+theme_override_fonts/normal_font = ExtResource("2_sukmr")
+theme_override_fonts/bold_font = ExtResource("3_3ds57")
+text = "Achievement Test"
+
+[node name="AchievementDescription" type="TextEdit" parent="Achievement_Anchor/Achievement_Properties"]
+offset_left = 133.0
+offset_top = 24.0
+offset_right = 231.0
+offset_bottom = 45.0
+text = "Achievement Unlcoked!"

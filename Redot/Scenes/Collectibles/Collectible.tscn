@@ -1,0 +1,150 @@
+[gd_scene load_steps=22 format=3 uid="uid://dxymmuic3jakc"]
+
+[ext_resource type="Texture2D" uid="uid://cxq1auqwwx2s2" path="res://Artwork/Collectibles/Sid Marshall - Badge of Honor - Jigsaw Puzzle (Sprite Sheet).png" id="1_ejowc"]
+[ext_resource type="Script" path="res://Scripts/JigsawPuzzle.cs" id="1_hjif0"]
+[ext_resource type="AudioStream" uid="uid://bwqw0tcogji2u" path="res://Audio/Sound Effects/Pickup.wav" id="2_khtuj"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ejeu5"]
+atlas = ExtResource("1_ejowc")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kxfvu"]
+atlas = ExtResource("1_ejowc")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hqaxw"]
+atlas = ExtResource("1_ejowc")
+region = Rect2(64, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_0xjrt"]
+atlas = ExtResource("1_ejowc")
+region = Rect2(96, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gu4mw"]
+atlas = ExtResource("1_ejowc")
+region = Rect2(128, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_iv1qv"]
+atlas = ExtResource("1_ejowc")
+region = Rect2(160, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nccaq"]
+atlas = ExtResource("1_ejowc")
+region = Rect2(192, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ixd6u"]
+atlas = ExtResource("1_ejowc")
+region = Rect2(224, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_62ocx"]
+atlas = ExtResource("1_ejowc")
+region = Rect2(256, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_srx8i"]
+atlas = ExtResource("1_ejowc")
+region = Rect2(288, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qp1iw"]
+atlas = ExtResource("1_ejowc")
+region = Rect2(320, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_78v6i"]
+atlas = ExtResource("1_ejowc")
+region = Rect2(352, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nnd8b"]
+atlas = ExtResource("1_ejowc")
+region = Rect2(384, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1nlc4"]
+atlas = ExtResource("1_ejowc")
+region = Rect2(416, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7nbuj"]
+atlas = ExtResource("1_ejowc")
+region = Rect2(448, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fpyc5"]
+atlas = ExtResource("1_ejowc")
+region = Rect2(480, 0, 32, 32)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_bk6mp"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ejeu5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_kxfvu")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_hqaxw")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_0xjrt")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_gu4mw")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_iv1qv")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_nccaq")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ixd6u")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_62ocx")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_srx8i")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qp1iw")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_78v6i")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_nnd8b")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1nlc4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_7nbuj")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fpyc5")
+}],
+"loop": true,
+"name": &"Spin",
+"speed": 12.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_nqidk"]
+size = Vector2(28, 21)
+
+[node name="Collectible" type="Node2D" groups=["Interactable"]]
+script = ExtResource("1_hjif0")
+
+[node name="PickupSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("2_khtuj")
+
+[node name="Animation" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("SpriteFrames_bk6mp")
+animation = &"Spin"
+autoplay = "Spin"
+frame_progress = 0.393567
+
+[node name="Detection" type="Area2D" parent="."]
+collision_layer = 65
+collision_mask = 2
+
+[node name="Collision" type="CollisionShape2D" parent="Detection"]
+position = Vector2(0, -2.5)
+shape = SubResource("RectangleShape2D_nqidk")
+
+[connection signal="body_entered" from="Detection" to="." method="whenBody2DEntered"]
