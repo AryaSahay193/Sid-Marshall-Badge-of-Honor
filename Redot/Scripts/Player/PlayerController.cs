@@ -3,8 +3,8 @@ using System;
 using System.Diagnostics;
  
 public enum PlayerState { //Character States
-        Idle, Move, Jump, Fall, Land, Walled, //Traversal states (movement). 
-        Crouch, Dive, Grab, Punch, Kick //Action states (evade, attacks, etc).
+        Idle, Move, Jump, Fall, Land, Walled, WallKick, //Traversal states (movement). 
+        Crouch, Slide, Dive, Grab, Punch, Kick //Action states (evade, attacks, etc).
 }
 
 public partial class PlayerController : CharacterBody2D {
@@ -16,13 +16,13 @@ public partial class PlayerController : CharacterBody2D {
     public Vector2 characterVelocity;
     public RayCast2D wallDetection;
 
-    private bool isCrouching = false, isStanding = true; //By default.
+    private bool isInBattleMode, isCrouching = false; //By default.
     private float jumpVelocity = -121.90f, horizontalJumpVelocity = 100.70f, gravityValue = 186.03f, airVelocity = 87.45f;
     private float acceleration = 2.65f, airAcceleration = 2.915f, airFriction = 1.272f, friction = 3.180f;
     private float wallPushback = 171.72f, wallJumpHeight = -187.09f, wallSlideSpeed = 100.17f;
     private float coyoteCounter = 0.53f, coyoteTime, slideFriction = 3.657f;
     [Export] private Shape2D crouchCollision, normalCollision;
-    private RayCast2D groundDetection, ceilingDetection; 
+    private RayCast2D groundDetection, ceilingDetection;
     private CollisionShape2D playerCollision;
     private Timer wallJumpTimer, landTimer;
     private InputManager inputManager; 
@@ -38,7 +38,7 @@ public partial class PlayerController : CharacterBody2D {
         currentHealth = maximumHealth;
         numberOfJumps = maximumJumps;
     }
- 
+
     //Main method of the player, reads code for each frame the game runs.
     public override void _PhysicsProcess(double delta) {
         horizontalDirection = inputManager.horizontalButton(); //Axis type, assigns X-axis controls (Left and Right).
@@ -50,12 +50,9 @@ public partial class PlayerController : CharacterBody2D {
         switch(currentState) {
             case PlayerState.Idle :
                 if(inputManager.jumpButton()) currentState = PlayerState.Jump;
-                else if(IsOnFloorOnly() && inputManager.crouchButton()) currentState = PlayerState.Crouch;
-                else characterVelocity.X = 0.0f;
                 break;
             case PlayerState.Move :
                 if(inputManager.jumpButton()) currentState = PlayerState.Jump;
-                else if(inputManager.crouchButton()) currentState = PlayerState.Crouch;
                 else characterMovement(walkingSpeed, acceleration, friction);
                 break;
             case PlayerState.Jump :
@@ -67,28 +64,25 @@ public partial class PlayerController : CharacterBody2D {
                 float airMoveParameter = -1000.0f;
                 characterVelocity = new Vector2(characterVelocity.X, characterVelocity.Y += gravityValue * (float)delta);
                 if(characterVelocity.Y >= airMoveParameter) characterMovement(airVelocity, airAcceleration, airFriction);
-                if(!IsOnFloor() && groundDetection.IsColliding()) currentState = PlayerState.Land;
                 break;
             case PlayerState.Land :
                 if(IsOnFloor()) characterVelocity.X = 0.0f;
                 landTimer.Start();
                 break;
             case PlayerState.Crouch :
-                if(horizontalDirection != 0.0f) {
-                    if(characterVelocity.X == maximumSpeed * horizontalDirection) characterFriction((slideFriction/2.5f)); //Sliding
-                    else characterFriction(slideFriction); //Crouching
-                } else characterFriction(slideFriction);
-                if(isCrouching == true) {
-                    playerCollision.Shape = crouchCollision;
-                    playerCollision.Position = new Vector2(0, 9);
-                } else characterStand(); 
+                if(horizontalDirection != 0.0f || horizontalDirection == 0.0f) characterFriction(slideFriction); //Crouching
+                if(Input.IsActionJustReleased("player_down")) characterStand(); 
+                break;
+            case PlayerState.Slide :
+                if(horizontalDirection != 0.0f || horizontalDirection == 0.0f) characterFriction((slideFriction/2f)); //Sliding
                 break;
             case PlayerState.Walled : 
                 characterVelocity.Y = Mathf.MoveToward(characterVelocity.Y, wallSlideSpeed, acceleration) * FPSstabalizer;
-                if(inputManager.jumpButton()) {
-                    characterVelocity = new Vector2(-(wallPushback * horizontalDirection), wallJumpHeight) * FPSstabalizer;
-                    numberOfJumps = 0;
-                } break;
+                break;
+            case PlayerState.WallKick :
+                characterVelocity = new Vector2(-(wallPushback * horizontalDirection), wallJumpHeight) * FPSstabalizer;
+                numberOfJumps = 0;
+                break;
             case PlayerState.Punch :
                 characterVelocity = Vector2.Zero;
                 break;
@@ -99,28 +93,47 @@ public partial class PlayerController : CharacterBody2D {
         Velocity = characterVelocity; //Setting the Velocity Vector2 equal to velocity.
         flipCharacter(); //Flips the player (Raycasts, animations will be flipped in Animation script).
         MoveAndSlide(); //A necessary method to make movement work in Redot engine.
-        //GD.Print("Current State: " + currentState);
-        GD.Print("Standing? : " + isStanding, ", Crouching? : " + isCrouching);
+        GD.Print("Current State: " + currentState);
     }
  
     public void StateConditions(float delta) { //Method that sets conditions for each state.
-        if(IsOnWallOnly() && wallDetection.IsColliding() && horizontalDirection != 0.0f) currentState = PlayerState.Walled;
-        else if(IsOnFloorOnly()) {    
-            if(horizontalDirection == 0.0f && characterVelocity.X == 0.0f) currentState = PlayerState.Idle;
-            else currentState = PlayerState.Move;
-            if(inputManager.punchButton() /*&& isInBattleMode*/) currentState = PlayerState.Punch;
-            else if(inputManager.kickButton() /*&& isInBattleMode*/) currentState = PlayerState.Kick;
-            if(inputManager.crouchButton() == false) {
-                isCrouching = false; isStanding = true;
-            } else {
-                isCrouching = true; isStanding = false;
-                currentState = PlayerState.Crouch;
-            }
+        if(inputManager.jumpButton() || characterVelocity.Y < 0.0f) currentState = PlayerState.Jump;
+        if(IsOnWallOnly()) {
+            if(wallDetection.IsColliding() && horizontalDirection != 0.0f) currentState = PlayerState.Walled;
+            if(wallDetection.IsColliding() && inputManager.jumpButton() && horizontalDirection != 0.0f) currentState = PlayerState.WallKick;
+        } else if(IsOnFloorOnly()) {    
             coyoteCounter = coyoteTime; //CoyoteTime = 1.5f.
             characterVelocity.Y = 0.0f; //Resets the gravity.
             numberOfJumps = 0; //Resets the counter.
+ 
+            //Movement logic.
+            if(inputManager.jumpButton() || characterVelocity.Y < 0.0f) currentState = PlayerState.Jump;
+            if(horizontalDirection == 0.0f && characterVelocity.X == 0.0f) currentState = PlayerState.Idle;
+            else currentState = PlayerState.Move;
+            
+            //Attack logic.
+            if(isInBattleMode) {
+                if(inputManager.punchButton()) currentState = PlayerState.Punch;
+                else if(inputManager.kickButton()) currentState = PlayerState.Kick;
+                else if(inputManager.grabButton()) currentState = PlayerState.Grab;
+            }
+            
+            //Crouch and Slide logic.
+            if(inputManager.crouchButton() == false) {
+                isCrouching = false;
+                playerCollision.Shape = normalCollision;
+                playerCollision.Position = new Vector2(0, 1);
+            } else {
+                isCrouching = true;
+                playerCollision.Shape = crouchCollision;
+                playerCollision.Position = new Vector2(0, 9);
+            } if(isCrouching) {
+                if(characterVelocity.X <= walkingSpeed && characterVelocity.X >= -walkingSpeed) currentState = PlayerState.Crouch;
+                else currentState = PlayerState.Slide;
+            }
         } else {
             if(characterVelocity.Y > 0.0f) currentState = PlayerState.Fall;
+            if(!IsOnFloor() && groundDetection.IsColliding()) currentState = PlayerState.Land;
             characterVelocity.Y += gravityValue * (float)delta; //Sets the character gravity.   
             coyoteCounter -= (float)delta;
         } 
