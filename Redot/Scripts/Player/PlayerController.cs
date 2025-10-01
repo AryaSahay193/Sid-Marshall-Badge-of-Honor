@@ -20,7 +20,7 @@ public partial class PlayerController : CharacterBody2D {
     private float jumpVelocity = -121.90f, horizontalJumpVelocity = 100.70f, gravityValue = 186.03f, airVelocity = 87.45f;
     private float acceleration = 2.65f, airAcceleration = 2.915f, airFriction = 1.272f, friction = 3.180f;
     private float wallPushback = 171.72f, wallJumpHeight = -187.09f, wallSlideSpeed = 100.17f;
-    private float coyoteCounter = 0.53f, coyoteTime, slideFriction = 3.657f;
+    private float coyoteCounter = 0.53f, coyoteTime, slideFriction = 2.173f, floorAngle;
     [Export] private Shape2D crouchCollision, normalCollision;
     private RayCast2D groundDetection, ceilingDetection;
     private CollisionShape2D playerCollision;
@@ -70,11 +70,12 @@ public partial class PlayerController : CharacterBody2D {
                 landTimer.Start();
                 break;
             case PlayerState.Crouch :
-                if(horizontalDirection != 0.0f || horizontalDirection == 0.0f) characterFriction(slideFriction); //Crouching
-                if(Input.IsActionJustReleased("player_down")) characterStand(); 
+                if(FloorMaxAngle > 0.0f) currentState = PlayerState.Idle;
+                else characterFriction(slideFriction);
                 break;
             case PlayerState.Slide :
-                if(horizontalDirection != 0.0f || horizontalDirection == 0.0f) characterFriction((slideFriction/2f)); //Sliding
+                if(FloorMaxAngle > 0.0f) currentState = PlayerState.Idle;
+                else characterFriction((slideFriction/2));
                 break;
             case PlayerState.Walled : 
                 characterVelocity.Y = Mathf.MoveToward(characterVelocity.Y, wallSlideSpeed, acceleration) * FPSstabalizer;
@@ -111,25 +112,24 @@ public partial class PlayerController : CharacterBody2D {
             if(horizontalDirection == 0.0f && characterVelocity.X == 0.0f) currentState = PlayerState.Idle;
             else currentState = PlayerState.Move;
             
-            //Attack logic.
-            if(isInBattleMode) {
-                if(inputManager.punchButton()) currentState = PlayerState.Punch;
-                else if(inputManager.kickButton()) currentState = PlayerState.Kick;
-                else if(inputManager.grabButton()) currentState = PlayerState.Grab;
-            }
-            
             //Crouch and Slide logic.
-            if(inputManager.crouchButton() == false) {
+            if(!inputManager.crouchButton()) {
                 isCrouching = false;
+                if(FloorMaxAngle > 63) FloorStopOnSlope = false;
+                else FloorStopOnSlope = true;
                 playerCollision.Shape = normalCollision;
                 playerCollision.Position = new Vector2(0, 1);
             } else {
                 isCrouching = true;
+                characterVelocity.X = Mathf.MoveToward(characterVelocity.X, 0.0f, slideFriction);
                 playerCollision.Shape = crouchCollision;
                 playerCollision.Position = new Vector2(0, 9);
             } if(isCrouching) {
                 if(characterVelocity.X <= walkingSpeed && characterVelocity.X >= -walkingSpeed) currentState = PlayerState.Crouch;
                 else currentState = PlayerState.Slide;
+                FloorStopOnSlope = false;
+                FloorMaxAngle = 0.0f; //Allows players to slide only on flat or negative slope surfaces.
+                FloorSnapLength = 1; //Allows the player to stick to the floor.
             }
         } else {
             if(characterVelocity.Y > 0.0f) currentState = PlayerState.Fall;
@@ -162,12 +162,6 @@ public partial class PlayerController : CharacterBody2D {
                 characterVelocity.X = Mathf.MoveToward(characterVelocity.X, maximumSpeed * horizontalDirection, acceleration * 2.0f); //Run-movement code;
             } else characterVelocity.X = Mathf.MoveToward(characterVelocity.X, endingSpeed * horizontalDirection, incrementValue); //Walk-movement code.
         } else characterFriction(decrementValue); //Player-friction code.
-    }
- 
-    private void characterStand() {
-        playerCollision.Shape = normalCollision;
-        playerCollision.Position = new Vector2(0, 1);
-        currentState = PlayerState.Idle;
     }
 
     //Signal method for when timer finishes when landing on the floor.
