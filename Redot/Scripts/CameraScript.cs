@@ -1,34 +1,86 @@
 using Godot;
 using System;
 
-public partial class CameraScript : Camera2D {
-	private Vector2 cameraDirection, cameraPosition, playerPosition, cameraVelocity = new Vector2(0.0f, 0.0f);
-	private CharacterBody2D playerReference;
-	private Camera2D camera;
-	
-	
+public partial class CameraScript : Node2D {
+	public float cameraAcceleration = 2.0f, cameraFriction = 3.5f, cameraSpeed = 1.431f, mouseMultiplier = 1.060f;
+	private float horizontalMargin = 150.0f, verticalMargin = 100.0f, cameraReturnSpeed = 0.7f; 
+	private Vector2 cameraDirection, cameraPosition, playerPosition;
+	private bool mouseDragged, screenCaptured;
+	private Resource mouseOpen, mouseGrab;
+	private PlayerController playerReference;
+	private PlayerEffects playerAnimations;
+	private GlobalData singletonReference;
+	private InputManager inputManager;
+	private CameraUI cameraUI;
+	public bool inCameraMode;
 
-	private bool canMoveCamera;
-	
-	[Export] private float cameraAcceleration; //2.0f
-	[Export] private float cameraFriction; //3.5f
-	[Export] private float cameraSpeed; //10.0f
-
-	public override void _Ready() {	
-		cameraDirection = Input.GetVector("camera_left", "camera_right", "camera_up", "camera_down");
-		playerReference = GetNode<CharacterBody2D>("SidMarshall");
+	public override void _Ready() {
+		mouseOpen = ResourceLoader.Load("res://Artwork/UI_Elements/Cursor/OpenHand.png"); //Open mouse hand icon 
+		mouseGrab = ResourceLoader.Load("res://Artwork/UI_Elements/Cursor/GrabHand.png"); //Grab mouse hand icon
+		cameraUI = GetNode<CameraUI>("/root/GameWorld/UIElements/CameraUI"); //Reference to the CameraUI node.
+		singletonReference = GetNode<GlobalData>("/root/GlobalData"); //Autoload script that handles global variables.
+		inputManager = GetNode<InputManager>("/root/InputManager"); //Autoload script that handles input.
+		playerAnimations = singletonReference.playerAnimations;
+		playerReference = singletonReference.playerReference;
 		playerPosition = playerReference.GlobalPosition; //Reference to Sid's position so the camera can return back.
-		cameraPosition = camera.Position;
+		cameraDirection = inputManager.cameraInput();
+		cameraPosition = this.Position;
 	}
 
 	public override void _Process(double delta) {
-		if(cameraDirection.X > 0.0f) cameraPosition.X += cameraSpeed;
-		else if(cameraDirection.X < 0.0f) cameraPosition.X -= cameraSpeed;
-		else if(cameraDirection.Y < 0.0f) cameraPosition.Y += cameraSpeed;
-		else if(cameraDirection.Y > 0.0f) cameraPosition.Y -= cameraSpeed;
-		else if(Input.IsActionJustPressed("camera_activate")) {
-			cameraPosition.X = Mathf.Lerp(cameraPosition.X, playerPosition.X, cameraSpeed);
-			cameraPosition.Y = Mathf.Lerp(cameraPosition.Y, playerPosition.Y, cameraSpeed);
+		float horizontalDirection = inputManager.cameraInput().X;
+		float verticalDirection = inputManager.cameraInput().Y;
+		if(cameraUI.Visible) inCameraMode = true; 
+		else inCameraMode = false;
+		if(inCameraMode) {
+			playerAnimations.SetProcess(false);
+			if(inputManager.cameraInput() != Vector2.Zero) {
+				GlobalPosition += new Vector2(cameraSpeed * horizontalDirection, cameraSpeed * verticalDirection);
+				if(inputManager.cameraInput().X < 0.0f) {
+					cameraUI.buttonLeft.ButtonDown += cameraUI.leftPressed;
+					cameraUI.buttonLeft.ButtonUp += cameraUI.leftReleased;
+				} else if(inputManager.cameraInput().X > 0.0f) {
+					cameraUI.buttonRight.ButtonDown += cameraUI.rightPressed;
+					cameraUI.buttonRight.ButtonUp += cameraUI.rightReleased;
+				} else if(inputManager.cameraInput().Y < 0.0f) {
+					cameraUI.buttonUp.ButtonDown += cameraUI.upPressed;
+					cameraUI.buttonUp.ButtonUp += cameraUI.upReleased;
+				} else if(inputManager.cameraInput().Y > 0.0f) {
+					cameraUI.buttonDown.ButtonDown += cameraUI.downPressed;
+					cameraUI.buttonDown.ButtonUp += cameraUI.downReleased;
+				}
+			} 
+		} else {
+			returnToPlayer();
+			playerAnimations.SetProcess(true);
 		}
+	}
+
+	public override void _PhysicsProcess(double delta) {
+        if(inCameraMode) playerReference.SetPhysicsProcess(false);
+		else playerReference.SetPhysicsProcess(true);
+    }
+
+	//Redot built-in method that handles input. This function handles mouse input for dragging the camera and zooming in, along with custom pointers.
+    public override void _Input(InputEvent @event) {
+        if(inCameraMode) {
+			bool buttonHovered = cameraUI.mouseButton.IsHovered() || cameraUI.buttonLeft.IsHovered() || cameraUI.buttonRight.IsHovered() || cameraUI.buttonUp.IsHovered() || cameraUI.buttonDown.IsHovered();
+			playerReference.horizontalDirection = 0.0f;
+			if(buttonHovered) Input.SetCustomMouseCursor(null);
+			else Input.SetCustomMouseCursor(mouseOpen);
+			if(@event is InputEventMouseButton mouseButton) {
+				if(mouseButton.ButtonIndex == MouseButton.Left) mouseDragged = mouseButton.Pressed;
+			} if(@event is InputEventMouseMotion mouseMotion && mouseDragged == true && !buttonHovered) {
+				if(mouseDragged) Input.SetCustomMouseCursor(mouseGrab, Input.CursorShape.Drag);
+				GlobalPosition += (-mouseMotion.Relative * mouseMultiplier);
+			}
+		} else Input.SetCustomMouseCursor(null); //Sets cursor back to default.
+    }
+
+	private void returnToPlayer() { 
+		if(GlobalPosition != playerPosition) {
+            GlobalPosition = ToLocal(playerPosition); //Camera will snap back to the player's location.
+			GlobalPosition = playerReference.GlobalPosition; //Sets camera position to follow the player again.
+        } else return;
 	}
 }
