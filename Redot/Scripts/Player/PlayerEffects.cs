@@ -3,20 +3,30 @@ using System;
 
 //Class that handles player animations, player sounds and particle effects.
 public partial class PlayerEffects : Node2D {
+	[ExportGroup("Audio")]
 	[Export] AudioStreamPlayer jumpSFX, grassWalkSFX;
+	
+	[ExportGroup("Animations")]
 	[Export] AnimatedSprite2D playerAnimations;
+	
+	[ExportGroup("Effects")]
 	[Export] CpuParticles2D dustParticles;
+	
+	[ExportGroup("References")]
+	[Export] private PlayerController playerScript;
 	[Export] Timer airBorneTimer;
-	private PlayerController playerScript; 
+
+	private SceneManager sceneManager; 
 	private GlobalData singletonReference;
 	private InputManager inputManager;
 	private Vector2 playerVelocity;
 	private float playerDirection;
+	private Tween colorChange;
 
 	public override void _Ready() {
 		singletonReference = GetNode<GlobalData>("/root/GlobalData");
 		inputManager = GetNode<InputManager>("/root/InputManager");
-		playerScript = singletonReference.playerReference;
+		sceneManager = GetNode<SceneManager>("/root/SceneManager");
 		playerVelocity = singletonReference.playerVelocity;
 	}
 
@@ -26,42 +36,51 @@ public partial class PlayerEffects : Node2D {
 		flipCharacter();	
 		switch(playerScript.currentState) {
 			case PlayerState.Idle :
-				//if(playerScript.inBattleMode) playerAnimations.Play("Battle_Idle");
-				playerAnimations.Play("Idle");
+				if(playerScript.isInBattleMode) playerAnimations.Play("Battle_Idle");
+				else playerAnimations.Play("Idle");
 				break;
 			case PlayerState.Move :
-				if(Input.IsActionPressed("player_run") || playerVelocity.X == playerScript.maximumSpeed) {
-					if(playerScript.IsOnFloor() && playerVelocity.X != (playerScript.walkingSpeed * playerDirection) || playerVelocity.X != 0.0f) dustParticles.Direction = (playerVelocity * -playerDirection);
-					if(playerVelocity.X > playerScript.walkingSpeed || playerVelocity.X < -playerScript.walkingSpeed) playerAnimations.Play("Skid");
-					playerAnimations.Play("Run");
-					grassWalkSFX.PitchScale *= (valueGenerator() + 1.0f);
+				if((playerDirection == 0.0f || playerDirection == -playerDirection) && playerVelocity.X != 0.0f) playerAnimations.Play("Skid");
+				if(Input.IsActionPressed("player_run") || (playerVelocity.X > playerScript.walkingSpeed || playerVelocity.X < -playerScript.walkingSpeed)) {
+					grassWalkSFX.PitchScale *= (singletonReference.randomDecimal() + 1.0f);
+					dustParticles.Direction = (playerVelocity * -playerDirection);
+					playerAnimations.Play("Run"); 
 				} else { 
 					playerAnimations.Play("Walk");
 					grassWalkSFX.Play(); 
 				} break;
 			case PlayerState.Jump :
+				if(inputManager.jumpButton() && playerScript.characterVelocity.Y < 0.0f && playerScript.numberOfJumps < playerScript.maximumJumps) jumpSFX.Play();
 				if(playerScript.numberOfJumps == 2) {
-					jumpSFX.PitchScale = (valueGenerator() + 1.0f);
+					jumpSFX.PitchScale = (singletonReference.randomDecimal() + 1.0f);
 					playerAnimations.Play("Double_Jump");
-				} else {
-					playAnimationOnce("Jump");
-					jumpSFX.Play();
-				} break;
+				} else playAnimationOnce("Jump");
+				break;
 			case PlayerState.Fall :
 				playerAnimations.Play("Fall");
 				airBorneTimer.Start();
+				//airBorneTimer.Timeout += timerFinished;
 				break;
 			case PlayerState.Land :
-				playAnimationOnce("Land");
-				break;
+				if(playerScript.IsOnFloorOnly()) {
+					playAnimationOnce("Land");
+					if(!playerAnimations.IsPlaying()) playerScript.currentState = PlayerState.Idle;
+				} break;
 			case PlayerState.Crouch :
-				if(Input.IsActionJustReleased("player_down")) playAnimationOnce("Crouch_Recover");
+				if(!inputManager.crouchButton()) playAnimationOnce("Crouch_Recover");
 				else playAnimationOnce("Crouch");
 				break;
 			case PlayerState.Slide :
+				if(playerScript.GetRealVelocity().Y < 0.0f && playerScript.GetFloorAngle() > 0.0f) playerAnimations.FlipH = true;
+				else playerAnimations.FlipH = false;
+				if(playerVelocity.X > 0.0f) playerAnimations.FlipH = false;
+				else playerAnimations.FlipH = true;
 				playAnimationOnce("Slide");
-				playerAnimations.Play("Slide_Loop");
-				break;
+				if(inputManager.crouchButton()) playerAnimations.Play("Slide_Loop");
+				else if(!inputManager.crouchButton() || playerVelocity.X == 0.0f) {
+					playAnimationOnce("Slide_Recover");
+					playerScript.currentState = PlayerState.Idle;
+				} break;
 			case PlayerState.Walled :
 				if(playerScript.currentState == PlayerState.Fall && inputManager.horizontalButton() == 0.0f) playerAnimations.FlipH = true;
 				if(playerScript.wallDetection.IsColliding()) playAnimationOnce("Wall_Contact");
@@ -70,15 +89,27 @@ public partial class PlayerEffects : Node2D {
 				else playerAnimations.FlipH = false;
 				break;
 			case PlayerState.WallKick :
-				playAnimationOnce("Wall_Kick"); 
+				playAnimationOnce("Wall_Kick");
+				playerDirection = -playerDirection;
+				if(playerScript.IsOnFloor()) {
+					playerScript.currentState = PlayerState.Idle;
+					//playerAnimations.FlipH = true;
+				}
+				break;
+			case PlayerState.Door :
+				playAnimationOnce("Door_Enter_Push");
+				colorChange.TweenProperty(playerAnimations, "modulate", new Color("#2d1e2f"), 2.0f);
+				//playerAnimations.AnimationFinished += () => sceneManager.transitionToScene(); //Change scene when animation finishes.
 				break;
 			case PlayerState.Punch :
 				if(playerAnimations.IsPlaying() == false) playerScript.currentState = PlayerState.Idle; 
-				//else playerAnimations.Play("Punch");
+				else playerAnimations.Play("Punch");
 				break;
 			case PlayerState.Kick :
 				if(playerAnimations.IsPlaying() == false) playerScript.currentState = PlayerState.Idle;
 				else playerAnimations.Play("Kick");
+				break;
+			case PlayerState.Grab :
 				break;
 		} 
 		playerVelocity = playerScript.Velocity;
@@ -90,13 +121,10 @@ public partial class PlayerEffects : Node2D {
 		if(playerDirection != 0.0f) {
 			if(playerDirection < 0.0f) playerAnimations.FlipH = true;
 			else playerAnimations.FlipH = false;
+		} if(playerVelocity.X != 0.0f && playerDirection != -playerDirection) {
+			dustParticles.Direction = (playerVelocity * -playerDirection);
+			playerAnimations.Play("Skid");
 		}
-	}
-
-	private float valueGenerator() {
-		Random randomNumber = new Random();
-		float randomNumberInRange = (float)randomNumber.NextDouble();
-		return randomNumberInRange;
 	}
 
 	//Signal Method of AudioStreamPlayer, executes code for what to do after the audio clip finishes playing.
@@ -110,9 +138,15 @@ public partial class PlayerEffects : Node2D {
 	}
 
 	private void playAnimationOnce(String animationName) {
+		bool animationPlaying = playerAnimations.IsPlaying();
+		if(animationPlaying) {
+			playerAnimations.Play(animationName);
+			animationPlaying = !animationPlaying;
+		}
+		/*float frameNumber = playerAnimations.SpriteFrames.GetFrameCount(animationName);
 		playerAnimations.Play(animationName);
 		if(playerAnimations.IsPlaying()) return; //Lets the animation play (does nothing).
-		playerAnimations.Stop(); //This way the animation does not loop.
+		if(playerAnimations.Frame == frameNumber) playerAnimations.Stop(); //This way the animation does not loop.*/
 	}
 
 	//Signal Method for AnimatedSprite2D, when one animation plays the next one will play when it's done.
@@ -135,5 +169,5 @@ public partial class PlayerEffects : Node2D {
 	}
 
 	//Signal method that handles a special type of animation to be played.
-	private void whenAirTimerFinishes() => playerAnimations.Play("Fall_High");
+	//private void timerFinished() => playerAnimations.Play("Fall_High");
 }
