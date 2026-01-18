@@ -2,29 +2,29 @@ using Godot;
 using System;
 
 public partial class CameraScript : Node2D {
-	public float cameraAcceleration = 2.0f, cameraFriction = 3.5f, cameraSpeed = 1.431f, mouseMultiplier = 1.060f;
+	[ExportGroup("Icons")]
+	[Export] private Resource mouseOpen, mouseGrab;
+
+	[ExportGroup("References")]
+	[Export] private CameraUI cameraUI;
+
+	public float cameraSpeed = 1.219f, mouseMultiplier = 1.060f;
 	private float horizontalMargin = 150.0f, verticalMargin = 100.0f, cameraReturnSpeed = 0.7f; 
-	private Vector2 cameraDirection, cameraPosition, playerPosition;
+	private Vector2 cameraDirection, playerPosition;
 	private bool mouseDragged, screenCaptured;
-	private Resource mouseOpen, mouseGrab;
 	private PlayerController playerReference;
 	private PlayerEffects playerAnimations;
 	private GlobalData singletonReference;
 	private InputManager inputManager;
-	private CameraUI cameraUI;
 	public bool inCameraMode;
 
 	public override void _Ready() {
-		mouseOpen = ResourceLoader.Load("res://Artwork/UI_Elements/Cursor/OpenHand.png"); //Open mouse hand icon 
-		mouseGrab = ResourceLoader.Load("res://Artwork/UI_Elements/Cursor/GrabHand.png"); //Grab mouse hand icon
-		cameraUI = GetNode<CameraUI>("/root/GameWorld/UIElements/CameraUI"); //Reference to the CameraUI node.
 		singletonReference = GetNode<GlobalData>("/root/GlobalData"); //Autoload script that handles global variables.
 		inputManager = GetNode<InputManager>("/root/InputManager"); //Autoload script that handles input.
-		playerAnimations = singletonReference.playerAnimations;
-		playerReference = singletonReference.playerReference;
+		playerAnimations = singletonReference.playerEffects;
+		playerReference = singletonReference.playerController;
 		playerPosition = playerReference.GlobalPosition; //Reference to Sid's position so the camera can return back.
 		cameraDirection = inputManager.cameraInput();
-		cameraPosition = this.Position;
 	}
 
 	public override void _Process(double delta) {
@@ -57,15 +57,16 @@ public partial class CameraScript : Node2D {
 	}
 
 	public override void _PhysicsProcess(double delta) {
-        if(inCameraMode) playerReference.SetPhysicsProcess(false);
-		else playerReference.SetPhysicsProcess(true);
+        if(inCameraMode) {
+			playerReference.SetPhysicsProcess(false);
+			playerReference.horizontalDirection = 0.0f;
+		} else playerReference.SetPhysicsProcess(true);
     }
 
 	//Redot built-in method that handles input. This function handles mouse input for dragging the camera and zooming in, along with custom pointers.
     public override void _Input(InputEvent @event) {
         if(inCameraMode) {
 			bool buttonHovered = cameraUI.mouseButton.IsHovered() || cameraUI.buttonLeft.IsHovered() || cameraUI.buttonRight.IsHovered() || cameraUI.buttonUp.IsHovered() || cameraUI.buttonDown.IsHovered();
-			playerReference.horizontalDirection = 0.0f;
 			if(buttonHovered) Input.SetCustomMouseCursor(null);
 			else Input.SetCustomMouseCursor(mouseOpen);
 			if(@event is InputEventMouseButton mouseButton) {
