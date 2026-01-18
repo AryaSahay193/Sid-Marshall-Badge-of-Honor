@@ -1,0 +1,59 @@
+[gd_scene load_steps=10 format=3 uid="uid://cjrorhwa2x7qi"]
+
+[ext_resource type="PackedScene" uid="uid://dl7pa44wefccp" path="res://Scenes/Areas/Candyland.tscn" id="1_4k2o5"]
+[ext_resource type="PackedScene" uid="uid://cuca0ptkqp7w0" path="res://Scenes/SidMarshall.tscn" id="1_ny6kw"]
+[ext_resource type="PackedScene" uid="uid://duod7y80fnpb6" path="res://Scenes/User-Interface/MenuPause.tscn" id="2_3rvlb"]
+[ext_resource type="PackedScene" uid="uid://dourvyscmqliv" path="res://Scenes/Areas/SubwayStation.tscn" id="2_7jjv6"]
+[ext_resource type="PackedScene" uid="uid://dxymmuic3jakc" path="res://Scenes/Building-Blocks/Collectibles/Collectible.tscn" id="3_1s83r"]
+[ext_resource type="PackedScene" uid="uid://cb5voi644csy6" path="res://Scenes/Areas/Seaport.tscn" id="5_rn0xg"]
+[ext_resource type="PackedScene" uid="uid://b2qdd2p8ey2lf" path="res://Scenes/User-Interface/UIAchievement.tscn" id="8_ihmc1"]
+[ext_resource type="PackedScene" uid="uid://cenpefrsqubvb" path="res://Scenes/User-Interface/UIPlayer.tscn" id="9_re8tp"]
+[ext_resource type="PackedScene" uid="uid://bjr1irkmpofxw" path="res://Scenes/Building-Blocks/Enemies/Johnny.tscn" id="10_y7e2g"]
+
+[node name="GameWorld" type="Node2D"]
+process_mode = 1
+position = Vector2(9, 0)
+
+[node name="SidMarshall" parent="." instance=ExtResource("1_ny6kw")]
+position = Vector2(1310, 115)
+floor_max_angle = 1.09956
+
+[node name="Areas" type="Node2D" parent="."]
+metadata/_edit_lock_ = true
+
+[node name="Candyland" parent="Areas" instance=ExtResource("1_4k2o5")]
+position = Vector2(53, 108)
+metadata/_edit_lock_ = true
+
+[node name="SubwayStation" parent="Areas" instance=ExtResource("2_7jjv6")]
+position = Vector2(-1305, 101)
+metadata/_edit_lock_ = true
+
+[node name="Seaport" parent="Areas" instance=ExtResource("5_rn0xg")]
+position = Vector2(-9, 0)
+metadata/_edit_lock_ = true
+
+[node name="Enemies" type="Node2D" parent="."]
+metadata/_edit_lock_ = true
+
+[node name="Johnny" parent="Enemies" instance=ExtResource("10_y7e2g")]
+position = Vector2(1938, 36)
+script = null
+
+[node name="UIElements" type="Node2D" parent="."]
+metadata/_edit_lock_ = true
+
+[node name="AchievementUI" parent="UIElements" instance=ExtResource("8_ihmc1")]
+visible = false
+
+[node name="PlayerUI" parent="UIElements" instance=ExtResource("9_re8tp")]
+
+[node name="PauseMenu" parent="UIElements" instance=ExtResource("2_3rvlb")]
+visible = false
+
+[node name="Collectibles" type="Node2D" parent="."]
+metadata/_edit_lock_ = true
+
+[node name="Collectible" parent="Collectibles" instance=ExtResource("3_1s83r")]
+process_mode = 1
+position = Vector2(1362, -26)
