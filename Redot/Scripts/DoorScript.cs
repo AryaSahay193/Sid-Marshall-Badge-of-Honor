@@ -2,13 +2,14 @@ using Godot;
 using System;
 
 public partial class DoorScript : Node2D {
-	public event Action doorEntered;
-	private PlayerController playerReference;
+	public bool areaDetected = false, doorOpened = false;
+	public event Action sidOpenDoor;
+
+	private PlayerEffects playerEffects;
 	private GlobalData singletonReference;
 	private InputManager inputManager;
 	private SceneManager sceneManager;
-	private bool areaDetected = false, doorOpened = false;
-	
+
 	[ExportGroup("Animations")]
 	[Export] private AnimatedSprite2D doorAnimations;
 	
@@ -18,35 +19,47 @@ public partial class DoorScript : Node2D {
 	[ExportGroup("Sound Effects")]
 	[Export] private AudioStreamPlayer doorOpenSFX, doorCloseSFX;
 
+	[ExportGroup("References")]
+	[Export] public Marker2D spawnLocation;
+	[Export] private PackedScene playerInstance;
+	[Export(PropertyHint.File, "*.tscn")] private String scenePath; //Accepts any file type of .tscn
+
 	public override void _Ready() {
         singletonReference = GetNode<GlobalData>("/root/GlobalData");
 		inputManager = GetNode<InputManager>("/root/InputManager");
 		sceneManager = GetNode<SceneManager>("/root/SceneManager");
-		playerReference = singletonReference.playerReference;
+		playerEffects = singletonReference.playerEffects;
 		playerDetection.BodyEntered += rangeEntered;
 		playerDetection.BodyExited += rangeExited;
+
+		if(singletonReference.insideBuilding) doorAnimations.Play("Default_Inside");
+		else doorAnimations.Play("Default_Outside");
     }
 
 	public override void _Process(double delta) {
-		if(areaDetected) {
-			if(!doorOpened) { //Flag boolean which will only make the door open once.
-				if(inputManager.verticalButton() < 0.0f) {
-					doorEntered?.Invoke(); //Emits signal
-					doorAnimations.Play("Enter_Inside");
-					doorOpenSFX.Play();
-				} else return;
-				doorOpened = true; //Sets door open after opening.
-				//doorAnimations.AnimationFinished += sceneManager.transitionToScene();    
-			} 
+		if(areaDetected && !doorOpened) { //DoorOpened - Flag boolean which will only make the door open once. 
+			if(inputManager.verticalButton() < 0.0f) {
+				doorOpenSFX.Play();
+				doorAnimations.Play("Enter_Inside");
+				sidOpenDoor?.Invoke();
+				doorAnimations.AnimationFinished += () => sceneManager.transitionToArea(scenePath);
+			} else return;
+			doorOpened = true; //Sets door open after opening. 
 		} 
     }
 
-	private void rangeEntered(Node2D sidMarshall) {
+	public void rangeEntered(Node2D sidMarshall) {
 		if(sidMarshall is PlayerController) areaDetected = true;
 		else return;
 	}
 
-	private void rangeExited(Node2D sidMarshall) {
+	public void rangeExited(Node2D sidMarshall) {
 		if(sidMarshall is PlayerController) areaDetected = false;
 	}
+
+	/*private void instantiatePlayer() {
+		playerInstance.Instantiate(); //Creates a new instance of Sid Marshall.
+		GetTree().CurrentScene.AddChild(playerReference); //Adds Sid as a child to the current scene.
+		playerReference.Position = spawnLocation.Position;
+	}*/
 }
