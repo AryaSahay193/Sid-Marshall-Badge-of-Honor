@@ -12,6 +12,7 @@ public partial class PlayerController : CharacterBody2D {
     public Action<int> DamageToEnemy; //Signal sent for when the player damages enemies.
     public Action<float> StaminaDeplete; //Signal sent for stamina-value changes.
     public event Action readyToChangeScene; //Signal emits when animation finishes, to change scene.
+    public event Action sidDoorOpen; //Signal sent for door animations should play.
     
     [ExportGroup("Debug")]
     [Export] private RichTextLabel statePrint;
@@ -56,13 +57,13 @@ public partial class PlayerController : CharacterBody2D {
     private DoorScript doorScript;
 
     public override void _Ready() {
-        enemyBlueprint = GetNode<EnemyBaseClass>("res://Scripts/Enemies/EnemyBaseClass.cs");
         singletonReference = GetNode<GlobalData>("/root/GlobalData");
         inputManager = GetNode<InputManager>("/root/InputManager"); 
         sceneManager = GetNode<SceneManager>("/root/SceneManager");
         doorScript = singletonReference.doorScript;
         cameraReference = singletonReference.playerCamera;
         isInBattleMode = singletonReference.isInBattleMode;
+        enemyBlueprint = singletonReference.enemyBlueprint;
         singletonReference.playerController = this; 
         wallRayDirection = wallDetection.Scale.X;
         currentHealth = maximumHealth;
@@ -71,7 +72,6 @@ public partial class PlayerController : CharacterBody2D {
     }
 
     public override void _Process(double delta) {
-        flipSprite();
         switch(currentState) {
             case PlayerState.Idle :
                 if(isInBattleMode) playerAnimations.Play("Battle_Idle");
@@ -134,11 +134,9 @@ public partial class PlayerController : CharacterBody2D {
                 playAnimationOnce("Wall_Kick");
                 break;
             case PlayerState.Door :
-                playerAnimations.Play("Door_Open");
-                playerAnimations.AnimationFinished += () => playerAnimations.Play("Door_Enter_Push");
-                Tween colorChange = GetTree().CreateTween();
-		        colorChange.TweenProperty(playerAnimations, "modulate", new Color("#2d1e2f"), 2.0f);
-		        playerAnimations.AnimationFinished += () => readyToChangeScene?.Invoke(); //Emits signal when animation finishes
+                playAnimationOnce("Door_Open");
+                playerAnimations.AnimationFinished += () => sidDoorOpen?.Invoke(); 
+                sidDoorOpen += doorAnimation;
                 break;
         }
     }
@@ -156,11 +154,8 @@ public partial class PlayerController : CharacterBody2D {
                 stateHistory.Push(currentState);
             } previousState = stateHistory.Pop() - 1;
         }
-        /*if(previousState.ToString() == "-1") GD.Print(PlayerState.Idle);
-        else GD.Print(previousState);*/
         
-        //State Machine with Conditions.
-        StateConditions((float)delta);
+        StateConditions((float)delta); //State machine conditions.
         switch(currentState) { //Movement State Machine.
             case PlayerState.Idle :
                 StaminaDeplete?.Invoke(staminaValue);
@@ -201,17 +196,19 @@ public partial class PlayerController : CharacterBody2D {
                 characterVelocity = new Vector2((wallPushback * -horizontalDirection), wallJumpHeight);
                 break;
             case PlayerState.Door : //Activated state from the door script.
-                //GlobalPosition = sceneManager.characterDoorSpawn();
+                //characterVelocity = Vector2.Zero;
                 SetPhysicsProcess(false);
+                SetProcessInput(false);
                 break;
         }
         Velocity = characterVelocity; //Setting the Velocity Vector2 equal to velocity.
-        flipCharacter(); //Flips the player (Raycasts, animations will be flipped in Animation script).
         MoveAndSlide(); //A necessary method to make movement work in Redot engine.
         statePrint.Text = "[center]State: " + currentState.ToString() + "[/center]";
     }
     
     public void StateConditions(float delta) { //Method that sets conditions for each state.
+        flipCharacter();
+        doorScript.initiateDoorOpen += () => currentState = PlayerState.Door;
         //enemyBlueprint.InitiateBattle += (isInBattleMode) => isInBattleMode = true;
         if(IsOnWallOnly()) {
             if(wallDetection.IsColliding() && horizontalDirection != 0.0f) {
@@ -230,7 +227,7 @@ public partial class PlayerController : CharacterBody2D {
                 //Movement logic.
                 if(horizontalDirection == 0.0f && characterVelocity.X == 0.0f) currentState = PlayerState.Idle;
                 else currentState = PlayerState.Move;
-                
+
                 //Crouch and Slide logic.
                 if(!inputManager.crouchButton()) {
                     isCrouching = false;
@@ -264,28 +261,31 @@ public partial class PlayerController : CharacterBody2D {
         }
     }
  
-    private void flipCharacter() {
+    private void flipCharacter() { //Flips the player (Raycasts, animations will be flipped in Animation script).
         if(horizontalDirection != 0.0f) {
             if(horizontalDirection > 0.0f) {
                 wallRayDirection = 1.0f;
                 wallDetection.Scale = new Vector2(wallRayDirection, wallDetection.Scale.Y);
+                playerAnimations.FlipH = false;
             } else {
                 wallRayDirection = -1.0f;
                 wallDetection.Scale = new Vector2(wallRayDirection, wallDetection.Scale.Y);
-            }
+                playerAnimations.FlipH = true;
+            } /*if(playerVelocity.X != 0.0f && playerDirection != -playerDirection) {
+                dustParticles.Direction = (playerVelocity * -playerDirection);
+                playerAnimations.Play("Skid");
+            }*/
         }
     }
-    
-    private void flipSprite() { //Method that helps to flip the sprite of a character.
-		if(horizontalDirection != 0.0f) {
-			if(horizontalDirection < 0.0f) playerAnimations.FlipH = true;
-			else playerAnimations.FlipH = false;
-		} /*if(playerVelocity.X != 0.0f && playerDirection != -playerDirection) {
-			dustParticles.Direction = (playerVelocity * -playerDirection);
-			playerAnimations.Play("Skid");
-		}*/
-	}
 
+    private void doorAnimation() {
+        playAnimationOnce("Door_Enter_Push");
+        if(playerAnimations.IsPlaying()) {
+            Tween colorChange = GetTree().CreateTween();
+            colorChange.TweenProperty(playerAnimations, "modulate", new Color("#2d1e2f"), 2.0f);
+        } playerAnimations.AnimationFinished += () => readyToChangeScene?.Invoke(); //Emits signal when animation finishes
+    }
+    
     private void playAnimationOnce(String animationName) {
 		bool animationPlaying = playerAnimations.IsPlaying();
 		if(animationPlaying) {
@@ -295,14 +295,10 @@ public partial class PlayerController : CharacterBody2D {
 	}
 
     private void pauseInputOnAnimation(String animationName) {
-		if(playerAnimations.IsPlaying()) {
-			//playerScript.ProcessMode = Node.ProcessModeEnum = false;
-			SetPhysicsProcess(false);
-			horizontalDirection = 0.0f;
-		} else {
-			playerAnimations.AnimationFinished += () => SetPhysicsProcess(true);
-			characterVelocity = Vector2.Zero;
-		}
+        if(playerAnimations.IsPlaying()) {
+            SetPhysicsProcess(false);
+            SetProcessInput(false);
+        } else SetProcessInput(true);
 	}
 
     private void characterFriction(float decrementValue) { 
