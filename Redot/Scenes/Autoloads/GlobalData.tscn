@@ -1,0 +1,25 @@
+[gd_scene load_steps=6 format=3 uid="uid://ch566lg366puh"]
+
+[ext_resource type="Script" path="res://Scripts/Autoloads/GlobalData.cs" id="1_e4gxr"]
+[ext_resource type="PackedScene" uid="uid://cuca0ptkqp7w0" path="res://Scenes/SidMarshall.tscn" id="2_e3s0o"]
+[ext_resource type="PackedScene" uid="uid://d2hchlwptqop3" path="res://Scenes/Building-Blocks/PlayerCamera.tscn" id="3_ur711"]
+[ext_resource type="PackedScene" uid="uid://cenpefrsqubvb" path="res://Scenes/User-Interface/UIPlayer.tscn" id="4_8xara"]
+[ext_resource type="PackedScene" uid="uid://4kcnp4dov1rt" path="res://Scenes/Building-Blocks/Doors/HouseDoor.tscn" id="5_wyw7x"]
+
+[node name="GlobalData" type="Node2D" node_paths=PackedStringArray("playerCamera", "doorScript", "playerController", "playerInfo")]
+script = ExtResource("1_e4gxr")
+playerCamera = NodePath("Camera")
+doorScript = NodePath("Door")
+playerController = NodePath("Player")
+playerInfo = NodePath("PlayerUI")
+
+[node name="Player" parent="." instance=ExtResource("2_e3s0o")]
+
+[node name="Camera" parent="." instance=ExtResource("3_ur711")]
+visible = false
+
+[node name="PlayerUI" parent="." instance=ExtResource("4_8xara")]
+visible = false
+
+[node name="Door" parent="." instance=ExtResource("5_wyw7x")]
+visible = false

@@ -1,0 +1,76 @@
+[gd_scene load_steps=6 format=3 uid="uid://b8kfmt344hthm"]
+
+[ext_resource type="Script" path="res://Scripts/Autoloads/SceneManager.cs" id="1_5d0dc"]
+[ext_resource type="PackedScene" uid="uid://cuca0ptkqp7w0" path="res://Scenes/SidMarshall.tscn" id="2_hij4o"]
+
+[sub_resource type="Animation" id="Animation_j5wsb"]
+resource_name = "FadeFrom"
+length = 1.5
+step = 0.1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("ColorRect:color")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_o2xw6"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("ColorRect:color")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(0, 0, 0, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_kyrbv"]
+_data = {
+"Fade": SubResource("Animation_j5wsb"),
+"RESET": SubResource("Animation_o2xw6")
+}
+
+[node name="SceneTransition" type="CanvasLayer" node_paths=PackedStringArray("screenFade", "screenTransition")]
+layer = 128
+script = ExtResource("1_5d0dc")
+transitionDuration = 2.0
+screenFade = NodePath("Control/AnimationPlayer")
+screenTransition = NodePath("Control/ColorRect")
+playerInstance = ExtResource("2_hij4o")
+doorPath = "res://Scenes/Building-Blocks/Doors/DoorBlueprint.tscn"
+doorScriptPath = "res://Scripts/Doors/DoorScript.cs"
+playerAnimationPath = "res://Scripts/Player/PlayerEffects.cs"
+
+[node name="Control" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ColorRect" type="ColorRect" parent="Control"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Control"]
+libraries = {
+"": SubResource("AnimationLibrary_kyrbv")
+}
