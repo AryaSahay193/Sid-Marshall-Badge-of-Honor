@@ -5,12 +5,12 @@ using System.Diagnostics;
  
 public enum PlayerState { //Character States
         Idle, Move, Jump, Fall, Land, Walled, WallKick, Door, //Traversal states (movement). 
-        Crouch, Slide, Dive, Grab, Punch, Kick //Action states (evade, attacks, etc).
+        Crouch, Slide, Dive, Grab, ChainOne, ChainTwo, ChainThree, ChainFour, ChainFive //Action states (evade, attacks, etc).
 }
 
 public partial class PlayerController : CharacterBody2D {
-    public Action<int> DamageToEnemy; //Signal sent for when the player damages enemies.
-    public Action<float> StaminaDeplete; //Signal sent for stamina-value changes.
+    public event Action<int> DamageToEnemy; //Signal sent for when the player damages enemies.
+    public event Action<float> StaminaDeplete; //Signal sent for stamina-value changes.
     public event Action readyToChangeScene; //Signal emits when animation finishes, to change scene.
     public event Action sidDoorOpen; //Signal sent for door animations should play.
     
@@ -35,12 +35,12 @@ public partial class PlayerController : CharacterBody2D {
     [Export] public RayCast2D wallDetection; //Raycast used for wall-jump direction.
     
     [ExportGroup("Timers")] //For organization purposes in the game engine.
-    [Export] private Timer wallJumpTimer, airborneTimer;
+    [Export] private Timer airborneTimer, wallJumpTimer, inputBuffer;
     
+    public int maximumJumps = 2, numberOfJumps = 0;
     public float wallRayDirection, walkingSpeed = 53.0f, maximumSpeed = 164.3f, gravityValue = 186.03f;
     public float horizontalDirection, currentHealth, maximumHealth = 100.0f;
-    public int maximumJumps = 2, numberOfJumps = 0;
-    public bool isInBattleMode = false, isCrouching = false;
+    public bool isInBattleMode = false, isCrouching = false, signalSent = false;
     public PlayerState currentState = PlayerState.Idle, previousState;
     public Vector2 characterVelocity;
 
@@ -48,7 +48,7 @@ public partial class PlayerController : CharacterBody2D {
     private float acceleration = 2.65f, airAcceleration = 2.915f, airFriction = 1.272f, friction = 3.180f;
     private float coyoteCounter = 0.53f, coyoteTime, slideFriction = 2.915f, floorAngle, maxFloorAngle;
     private float wallPushback = 171.72f, wallJumpHeight = -187.09f, wallSlideSpeed = 100.17f;
-    private float staminaValue = 0.5f;
+    private float lightAttackStamina = -0.1f, heavyAttackStamina = -0.5f, restingStamina = 0.5f;
     private EnemyBaseClass enemyBlueprint;
     private GlobalData singletonReference;
     private CameraScript cameraReference;
@@ -68,7 +68,11 @@ public partial class PlayerController : CharacterBody2D {
         wallRayDirection = wallDetection.Scale.X;
         currentHealth = maximumHealth;
         maxFloorAngle = FloorMaxAngle;
-        numberOfJumps = maximumJumps;
+        numberOfJumps = maximumJumps; 
+    }
+
+    public override void _EnterTree() {
+        if(doorScript != null && currentState == PlayerState.Idle) doorScript.changeState += () => currentState = PlayerState.Door;
     }
 
     public override void _Process(double delta) {
@@ -76,9 +80,10 @@ public partial class PlayerController : CharacterBody2D {
             case PlayerState.Idle :
                 if(isInBattleMode) playerAnimations.Play("Battle_Idle");
 				else playerAnimations.Play("Idle");
+                StaminaDeplete?.Invoke(restingStamina);
                 break;
             case PlayerState.Move :
-                if(horizontalDirection == 0.0f && characterVelocity.X != maximumSpeed && characterVelocity.X != walkingSpeed) playAnimationOnce("Skid");
+                if(characterVelocity.X != 0.0f && characterVelocity.X != maximumSpeed * horizontalDirection && horizontalDirection == 0.0f) playAnimationOnce("Skid");
 				if(inputManager.runButton() || (characterVelocity.X > walkingSpeed || characterVelocity.X < -walkingSpeed)) {
 					//grassWalkSFX.PitchScale *= (singletonReference.randomDecimal() + 1.0f);
 					//dustParticles.Direction = (characterVelocity * -horizontalDirection);
@@ -102,7 +107,7 @@ public partial class PlayerController : CharacterBody2D {
                 if(groundDetection.IsColliding() && IsOnFloorOnly()) {
 					playAnimationOnce("Land");
 					if(playerAnimations.IsPlaying()) horizontalDirection = 0.0f;
-					pauseInputOnAnimation("Land");
+					pauseInputOnAnimation();
 				} break;
             case PlayerState.Crouch :
                 if(inputManager.crouchButton()) isCrouching = true;
@@ -135,8 +140,42 @@ public partial class PlayerController : CharacterBody2D {
                 break;
             case PlayerState.Door :
                 playAnimationOnce("Door_Open");
-                playerAnimations.AnimationFinished += () => sidDoorOpen?.Invoke(); 
-                sidDoorOpen += doorAnimation;
+                playerAnimations.AnimationFinished += openDoorAnimation;
+                SetPhysicsProcess(false);
+                SetProcessInput(false);
+                break;
+            case PlayerState.ChainOne :
+                inputBuffer.Start();
+                pauseInputOnAnimation();
+                if(inputManager.lightAttackButton()) {
+                    playerAnimations.Play("Attack_Light_Jab_Left");
+                    StaminaDeplete?.Invoke(lightAttackStamina); //Takes 0.1f off every punch.
+                    currentState = PlayerState.ChainTwo; 
+                } else if(inputManager.heavyAttackButton()) {
+                    playerAnimations.Play("Attack_Heavy_Hook_Left");
+                    StaminaDeplete?.Invoke(heavyAttackStamina); //Takes 0.1f off every punch.
+                    currentState = PlayerState.ChainTwo; 
+                } else if(inputBuffer.TimeLeft == 0.0f && !Input.IsAnythingPressed()) playerAnimations.AnimationFinished += () => currentState = PlayerState.Idle;
+                break;
+            case PlayerState.ChainTwo :
+                inputBuffer.Start();
+                pauseInputOnAnimation();
+                if(inputManager.lightAttackButton()) {
+                    playerAnimations.Play("Attack_Light_Jab_Right");
+                    StaminaDeplete?.Invoke(lightAttackStamina); //Takes 0.5f off every kick.
+                } else if(inputManager.heavyAttackButton()) {
+                    playerAnimations.Play("Attack_Heavy_Hook_Right");//playerAnimations.Play("Attack_Heavy_Kick");
+                    StaminaDeplete?.Invoke(heavyAttackStamina); //Takes 0.5f off every kick.
+                } else if(inputBuffer.TimeLeft == 0.0f && !Input.IsAnythingPressed()) playerAnimations.AnimationFinished += () => currentState = PlayerState.Idle;
+                break;
+            case PlayerState.ChainThree :
+                pauseInputOnAnimation();
+                break;
+            case PlayerState.ChainFour :
+                pauseInputOnAnimation();
+                break;
+            case PlayerState.ChainFive :
+                pauseInputOnAnimation();
                 break;
         }
     }
@@ -158,7 +197,7 @@ public partial class PlayerController : CharacterBody2D {
         StateConditions((float)delta); //State machine conditions.
         switch(currentState) { //Movement State Machine.
             case PlayerState.Idle :
-                StaminaDeplete?.Invoke(staminaValue);
+                if(inputManager.lightAttackButton() || inputManager.heavyAttackButton()) currentState = PlayerState.ChainOne;
                 if(inputManager.jumpButton() && characterVelocity.Y <= 0.0f) currentState = PlayerState.Jump;
                 break;
             case PlayerState.Move :
@@ -195,11 +234,6 @@ public partial class PlayerController : CharacterBody2D {
             case PlayerState.WallKick :
                 characterVelocity = new Vector2((wallPushback * -horizontalDirection), wallJumpHeight);
                 break;
-            case PlayerState.Door : //Activated state from the door script.
-                //characterVelocity = Vector2.Zero;
-                SetPhysicsProcess(false);
-                SetProcessInput(false);
-                break;
         }
         Velocity = characterVelocity; //Setting the Velocity Vector2 equal to velocity.
         MoveAndSlide(); //A necessary method to make movement work in Redot engine.
@@ -207,29 +241,25 @@ public partial class PlayerController : CharacterBody2D {
     }
     
     public void StateConditions(float delta) { //Method that sets conditions for each state.
+        enemyBlueprint.InitiateBattle += () => isInBattleMode = true;
         flipCharacter();
-        doorScript.initiateDoorOpen += () => currentState = PlayerState.Door;
-        //enemyBlueprint.InitiateBattle += (isInBattleMode) => isInBattleMode = true;
         if(IsOnWallOnly()) {
             if(wallDetection.IsColliding() && horizontalDirection != 0.0f) {
                 if(inputManager.jumpButton()) currentState = PlayerState.WallKick;
                 else currentState = PlayerState.Walled;
             }
         } else {
-            if(IsOnFloorOnly()) {    
-                //if(currentState != PlayerState.Jump) characterVelocity.Y = 0.0f; //Resets the gravity. 
+            if(IsOnFloorOnly()) {
                 coyoteCounter = coyoteTime; //CoyoteTime = 1.5f.
                 FloorStopOnSlope = true; //Keeps the character on the slope without sliding.
                 FloorSnapLength = 10; //Allows the player to stick to the floor.
                 numberOfJumps = 0; //Resets the counter.
                 airborneTimer.Stop(); //Stops timer when on the ground.
     
-                //Movement logic.
                 if(horizontalDirection == 0.0f && characterVelocity.X == 0.0f) currentState = PlayerState.Idle;
-                else currentState = PlayerState.Move;
+                else currentState = PlayerState.Move; //Movement Logic.
 
-                //Crouch and Slide logic.
-                if(!inputManager.crouchButton()) {
+                if(!inputManager.crouchButton()) { //Crouch/Slide Logic
                     isCrouching = false;
                     playerCollision.Shape = normalCollision;
                     playerCollision.Position = new Vector2(0, 1);
@@ -250,14 +280,7 @@ public partial class PlayerController : CharacterBody2D {
                 characterVelocity.Y += gravityValue * (float)delta; //Sets the character gravity.
                 if(characterVelocity.Y > 0.0f) currentState = PlayerState.Fall;
                 else airborneTimer.Start();
-
-                //Attack logic
-                if(isInBattleMode) {
-                    if(inputManager.punchButton()) currentState = PlayerState.Punch;
-                    else if(inputManager.kickButton()) currentState = PlayerState.Kick;
-                    else if(inputManager.grabButton()) currentState = PlayerState.Grab;
-                }
-            } if(inputManager.jumpButton() && characterVelocity.Y <= 0.0f) currentState = PlayerState.Jump;
+            } if(!IsOnWall() && inputManager.jumpButton() && characterVelocity.Y <= 0.0f) currentState = PlayerState.Jump;
         }
     }
  
@@ -277,14 +300,6 @@ public partial class PlayerController : CharacterBody2D {
             }*/
         }
     }
-
-    private void doorAnimation() {
-        playAnimationOnce("Door_Enter_Push");
-        if(playerAnimations.IsPlaying()) {
-            Tween colorChange = GetTree().CreateTween();
-            colorChange.TweenProperty(playerAnimations, "modulate", new Color("#2d1e2f"), 2.0f);
-        } playerAnimations.AnimationFinished += () => readyToChangeScene?.Invoke(); //Emits signal when animation finishes
-    }
     
     private void playAnimationOnce(String animationName) {
 		bool animationPlaying = playerAnimations.IsPlaying();
@@ -294,12 +309,29 @@ public partial class PlayerController : CharacterBody2D {
 		}
 	}
 
-    private void pauseInputOnAnimation(String animationName) {
+    private void pauseInputOnAnimation() {
         if(playerAnimations.IsPlaying()) {
             SetPhysicsProcess(false);
             SetProcessInput(false);
         } else SetProcessInput(true);
 	}
+
+    private void openDoorAnimation() {
+        sidDoorOpen?.Invoke(); //Sends signal to DoorScript to play Door Animation in a timely manner.
+        sidDoorOpen += () => playerAnimations.Play("Door_Enter_Push");
+        Tween colorChange = GetTree().CreateTween();
+        colorChange.TweenProperty(playerAnimations, "modulate", new Color("#2d1e2f"), animationLengthOf("Door_Enter_Push"));
+        readyToChangeScene?.Invoke(); //Emits signal when animation finishes
+        SetPhysicsProcess(false);
+        SetProcessInput(false);    
+    }
+
+    private float animationLengthOf(string animationName) {
+        float framesPerSecond = (float)playerAnimations.SpriteFrames.GetAnimationSpeed(animationName);
+        float numberOfFrames = playerAnimations.SpriteFrames.GetFrameCount(animationName);
+        float animationDuration = framesPerSecond/numberOfFrames;
+        return animationDuration;
+    }
 
     private void characterFriction(float decrementValue) { 
         if(IsOnFloor() && horizontalDirection == 0.0f) characterVelocity.X = Mathf.MoveToward(characterVelocity.X, 0.0f, decrementValue); //Player-friction code.
