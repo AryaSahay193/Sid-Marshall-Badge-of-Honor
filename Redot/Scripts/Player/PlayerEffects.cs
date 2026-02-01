@@ -110,18 +110,18 @@ public partial class PlayerEffects : Node2D {
 				playerAnimations.Play("Door_Open");
 				playerAnimations.AnimationFinished += enterDoor;
 				break;
-			case PlayerState.Punch :
+			/*case PlayerState.Punch :
 				playerAnimations.Play("Punch");
 				playerAnimations.AnimationFinished += () => playerScript.currentState = PlayerState.Idle;
 				break;
 			case PlayerState.Kick :
 				playerAnimations.Play("Kick"); 
 				playerAnimations.AnimationFinished += () => playerScript.currentState = PlayerState.Idle;
-				break;
+				break;*/
 			case PlayerState.Grab :
 				break;
 		} playerVelocity = playerScript.Velocity;
-		doorScript.sidOpenDoor += () => playerScript.currentState = PlayerState.Door;
+		//doorScript.sidOpenDoor += () => playerScript.currentState = PlayerState.Door;
 	}
 
 	private void enterDoor() {
