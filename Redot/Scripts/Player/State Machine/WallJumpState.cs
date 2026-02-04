@@ -1,7 +1,7 @@
 using Godot;
 using System;
 
-public partial class KickState : BaseStateClass {
+public partial class WallJumpState : BaseStateClass {
 	public override void EnterState() {
 	}
 
