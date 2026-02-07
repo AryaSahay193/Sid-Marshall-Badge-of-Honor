@@ -1,22 +1,31 @@
 using Godot;
 using System;
 
-public partial class CrouchState : BaseStateClass {
-	private float groundSlideSpeed = 3.5f;
+public partial class CrouchState : ParentState {
+	[ExportGroup("Collisions")]
+	[Export] private Shape2D crouchCollision;
+	private float crouchFriction = 1.325f;
+	private bool isCrouching = false;
 
-    public override void EnterState() => playerReference.playerAnimations.Play("Crouch");
+    public override void EnterState() { 
+		playerController.debugText.Text = "[center]State: Crouch[/center]";
+	}
 	
 	public override void UpdateState(float delta) {
-		if(playerReference.IsOnFloor() && playerReference.characterVelocity.X == 0.0f && Input.IsActionJustReleased("player_crouch")) {
-			finiteStateMachine.StateTransition(IdleState); //Change to Idle State.
-		} else if(!playerReference.IsOnFloor() && playerReference.characterVelocity.Y <= 0.0f) {
-			finiteStateMachine.StateTransition(JumpState); //Change to Jump State.
+		if(inputManager.crouchButton()) {
+			pauseInputOnAnimation();
+			playerAnimations.Play("Crouch"); //Continuosly plays crouch animation.
+		} else {
+			SetProcessInput(true);
+			playerAnimations.Play("Crouch_Recover");
+			playerAnimations.AnimationFinished += () => finiteStateMachine.StateTransition("IdleState");
 		}
 	}
 
-	public override void PhysicsUpdate(float delta) {}
-
-	public override void ExitState() {
-		playerReference.playerAnimations.Play("Crouch_Recover");
+	public override void PhysicsUpdate(float delta) {
+		if(playerController.Velocity.X != 0.0f) playerController.Velocity = playerController.Velocity with {X = calculateVelocity(playerController.Velocity.X, 0.0f, crouchFriction)};
+		else playerController.Velocity = playerController.Velocity with {X = 0.0f};
 	}
+
+	public override void ExitState() => playerAnimations.Play("Crouch_Recover");
 }
