@@ -1,0 +1,135 @@
+[gd_scene load_steps=2 format=3 uid="uid://duod7y80fnpb6"]
+
+[ext_resource type="Script" path="res://Scripts/UI/PauseMenu.cs" id="1_4bc20"]
+
+[node name="PauseMenu" type="CanvasLayer" node_paths=PackedStringArray("resumeButton", "optionsButton", "achievementButton", "menuButton", "quitButton", "pauseFade")]
+process_mode = 3
+script = ExtResource("1_4bc20")
+resumeButton = NodePath("MenuAnchor/ButtonLayout/Resume")
+optionsButton = NodePath("MenuAnchor/ButtonLayout/Options")
+achievementButton = NodePath("MenuAnchor/ButtonLayout/Achievements")
+menuButton = NodePath("MenuAnchor/ButtonLayout/Menu")
+quitButton = NodePath("MenuAnchor/ButtonLayout/Quit")
+pauseFade = NodePath("PauseColor")
+
+[node name="PauseColor" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.54902, 0.54902, 0.54902, 0.337255)
+
+[node name="MenuAnchor" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ButtonLayout" type="VBoxContainer" parent="MenuAnchor"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -45.0
+offset_top = -70.5
+offset_right = 45.0
+offset_bottom = 70.5
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Resume" type="Button" parent="MenuAnchor/ButtonLayout"]
+layout_mode = 2
+focus_neighbor_left = NodePath("../Quit")
+focus_neighbor_top = NodePath("../Quit")
+focus_neighbor_right = NodePath("../Options")
+focus_neighbor_bottom = NodePath("../Options")
+focus_next = NodePath("../Options")
+focus_previous = NodePath("../Quit")
+mouse_filter = 1
+theme_override_colors/font_hover_color = Color(0.662745, 0.294118, 0.329412, 1)
+theme_override_colors/font_pressed_color = Color(0.478431, 0.231373, 0.309804, 1)
+theme_override_colors/font_focus_color = Color(0.662745, 0.294118, 0.329412, 1)
+theme_override_colors/icon_focus_color = Color(0.941176, 0.623529, 0.443137, 1)
+theme_override_colors/icon_pressed_color = Color(0.847059, 0.447059, 0.368627, 1)
+theme_override_colors/icon_hover_color = Color(0.941176, 0.623529, 0.443137, 1)
+theme_override_font_sizes/font_size = 12
+text = "Resume"
+
+[node name="Options" type="Button" parent="MenuAnchor/ButtonLayout"]
+layout_mode = 2
+focus_neighbor_left = NodePath("../Resume")
+focus_neighbor_top = NodePath("../Resume")
+focus_neighbor_right = NodePath("../Achievements")
+focus_neighbor_bottom = NodePath("../Achievements")
+focus_next = NodePath("../Achievements")
+focus_previous = NodePath("../Resume")
+mouse_filter = 1
+theme_override_colors/font_hover_color = Color(0.662745, 0.294118, 0.329412, 1)
+theme_override_colors/font_pressed_color = Color(0.478431, 0.231373, 0.309804, 1)
+theme_override_colors/font_focus_color = Color(0.662745, 0.294118, 0.329412, 1)
+theme_override_colors/icon_focus_color = Color(0.941176, 0.623529, 0.443137, 1)
+theme_override_colors/icon_pressed_color = Color(0.847059, 0.447059, 0.368627, 1)
+theme_override_colors/icon_hover_color = Color(0.941176, 0.623529, 0.443137, 1)
+theme_override_font_sizes/font_size = 12
+text = "Options"
+
+[node name="Achievements" type="Button" parent="MenuAnchor/ButtonLayout"]
+layout_mode = 2
+focus_neighbor_left = NodePath("../Options")
+focus_neighbor_top = NodePath("../Options")
+focus_neighbor_right = NodePath("../Menu")
+focus_neighbor_bottom = NodePath("../Menu")
+focus_next = NodePath("../Menu")
+focus_previous = NodePath("../Options")
+mouse_filter = 1
+theme_override_colors/font_hover_color = Color(0.662745, 0.294118, 0.329412, 1)
+theme_override_colors/font_pressed_color = Color(0.478431, 0.231373, 0.309804, 1)
+theme_override_colors/font_focus_color = Color(0.662745, 0.294118, 0.329412, 1)
+theme_override_colors/icon_focus_color = Color(0.941176, 0.623529, 0.443137, 1)
+theme_override_colors/icon_pressed_color = Color(0.847059, 0.447059, 0.368627, 1)
+theme_override_colors/icon_hover_color = Color(0.941176, 0.623529, 0.443137, 1)
+theme_override_font_sizes/font_size = 12
+text = "Achievements"
+
+[node name="Menu" type="Button" parent="MenuAnchor/ButtonLayout"]
+layout_mode = 2
+focus_neighbor_left = NodePath("../Achievements")
+focus_neighbor_top = NodePath("../Achievements")
+focus_neighbor_right = NodePath("../Quit")
+focus_neighbor_bottom = NodePath("../Quit")
+focus_next = NodePath("../Quit")
+focus_previous = NodePath("../Achievements")
+mouse_filter = 1
+theme_override_colors/font_hover_color = Color(0.662745, 0.294118, 0.329412, 1)
+theme_override_colors/font_pressed_color = Color(0.478431, 0.231373, 0.309804, 1)
+theme_override_colors/font_focus_color = Color(0.662745, 0.294118, 0.329412, 1)
+theme_override_colors/icon_focus_color = Color(0.941176, 0.623529, 0.443137, 1)
+theme_override_colors/icon_pressed_color = Color(0.847059, 0.447059, 0.368627, 1)
+theme_override_colors/icon_hover_color = Color(0.941176, 0.623529, 0.443137, 1)
+theme_override_font_sizes/font_size = 12
+text = "Menu"
+
+[node name="Quit" type="Button" parent="MenuAnchor/ButtonLayout"]
+layout_mode = 2
+focus_neighbor_left = NodePath("../Menu")
+focus_neighbor_top = NodePath("../Menu")
+focus_neighbor_right = NodePath("../Resume")
+focus_neighbor_bottom = NodePath("../Resume")
+focus_next = NodePath("../Resume")
+focus_previous = NodePath("../Menu")
+mouse_filter = 1
+theme_override_colors/font_hover_color = Color(0.662745, 0.294118, 0.329412, 1)
+theme_override_colors/font_pressed_color = Color(0.478431, 0.231373, 0.309804, 1)
+theme_override_colors/font_focus_color = Color(0.662745, 0.294118, 0.329412, 1)
+theme_override_colors/icon_focus_color = Color(0.941176, 0.623529, 0.443137, 1)
+theme_override_colors/icon_pressed_color = Color(0.847059, 0.447059, 0.368627, 1)
+theme_override_colors/icon_hover_color = Color(0.941176, 0.623529, 0.443137, 1)
+theme_override_font_sizes/font_size = 12
+text = "Quit"
