@@ -3,12 +3,13 @@ using System;
 
 public partial class DoorScript : Node2D {
 	public bool areaDetected = false, doorOpened = false;
-	public event Action sidOpenDoor;
+	public event Action initiateDoorOpen;
+	public event Action<string> transitionToArea;
 
-	private PlayerEffects playerEffects;
 	private GlobalData singletonReference;
 	private InputManager inputManager;
 	private SceneManager sceneManager;
+	private PlayerController playerController;
 
 	[ExportGroup("Animations")]
 	[Export] private AnimatedSprite2D doorAnimations;
@@ -22,13 +23,13 @@ public partial class DoorScript : Node2D {
 	[ExportGroup("References")]
 	[Export] public Marker2D spawnLocation;
 	[Export] private PackedScene playerInstance;
-	[Export(PropertyHint.File, "*.tscn")] private String scenePath; //Accepts any file type of .tscn
+	[Export(PropertyHint.File, "*.tscn")] public String sceneLocation; //Accepts any file type of .tscn
 
 	public override void _Ready() {
         singletonReference = GetNode<GlobalData>("/root/GlobalData");
 		inputManager = GetNode<InputManager>("/root/InputManager");
 		sceneManager = GetNode<SceneManager>("/root/SceneManager");
-		playerEffects = singletonReference.playerEffects;
+		playerController = singletonReference.playerController;
 		playerDetection.BodyEntered += rangeEntered;
 		playerDetection.BodyExited += rangeExited;
 
@@ -39,10 +40,10 @@ public partial class DoorScript : Node2D {
 	public override void _Process(double delta) {
 		if(areaDetected && !doorOpened) { //DoorOpened - Flag boolean which will only make the door open once. 
 			if(inputManager.verticalButton() < 0.0f) {
-				doorOpenSFX.Play();
+				initiateDoorOpen?.Invoke(); //playerController.currentState = PlayerState.Door;
 				doorAnimations.Play("Enter_Inside");
-				sidOpenDoor?.Invoke();
-				doorAnimations.AnimationFinished += () => sceneManager.transitionToArea(scenePath);
+				doorOpenSFX.Play();
+				playerController.readyToChangeScene += () => sceneManager.transitionToArea(sceneLocation);
 			} else return;
 			doorOpened = true; //Sets door open after opening. 
 		} 
