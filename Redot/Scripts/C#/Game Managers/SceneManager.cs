@@ -65,19 +65,4 @@ public sealed partial class SceneManager : CanvasLayer {
 		sidMarshall = playerScene.Instantiate<PlayerController>(); //Creates a new instance of the player.
 		sceneLocation.GetChild(1).AddChild(sidMarshall); //Adds the player as a child to the new scene.
 	}
-}using Godot;
-using System;
-
-public partial class SceneManager : Node {
-	private Node2D sceneCandyland, sceneSubwayStation, sceneSeaport;
-	
-	public override void _Ready() {
-		//Initializing Scenes
-		sceneSubwayStation = GetNode<Node2D>("/root/GameWorld/Areas/SubwayStation");
-		sceneCandyland = GetNode<Node2D>("/root/GameWorld/Areas/Candyland");
-		sceneSeaport = GetNode<Node2D>("/root/GameWorld/Areas/Seaport");
-	}
-
-	public override void _Process(double delta) {
-	}
 }
