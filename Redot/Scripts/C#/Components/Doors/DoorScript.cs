@@ -1,18 +1,18 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 
 public partial class DoorScript : Node2D {
-	public bool areaDetected = false, doorOpened = false;
-	public event Action initiateDoorOpen;
-	public event Action<string> transitionToArea;
-
+	public event Action insideHouse;
+	
+	public bool areaDetected, doorEntered = false;
 	private GlobalData singletonReference;
-	private InputManager inputManager;
 	private SceneManager sceneManager;
 	private PlayerController playerController;
+	private DoorState doorState;
 
 	[ExportGroup("Animations")]
-	[Export] private AnimatedSprite2D doorAnimations;
+	[Export] public AnimatedSprite2D doorAnimations;
 	
 	[ExportGroup("Collisions")]
 	[Export] private Area2D playerDetection;
@@ -22,45 +22,54 @@ public partial class DoorScript : Node2D {
 
 	[ExportGroup("References")]
 	[Export] public Marker2D spawnLocation;
-	[Export] private PackedScene playerInstance;
 	[Export(PropertyHint.File, "*.tscn")] public String sceneLocation; //Accepts any file type of .tscn
 
-	public override void _Ready() {
-        singletonReference = GetNode<GlobalData>("/root/GlobalData");
-		inputManager = GetNode<InputManager>("/root/InputManager");
-		sceneManager = GetNode<SceneManager>("/root/SceneManager");
+    public override void _EnterTree() {
+        sceneManager = GetNode<SceneManager>("/root/SceneManager");
+		singletonReference = GetNode<GlobalData>("/root/GlobalData");
 		playerController = singletonReference.playerController;
-		playerDetection.BodyEntered += rangeEntered;
-		playerDetection.BodyExited += rangeExited;
+		doorState = singletonReference.doorState;
+		singletonReference.doorScript = this;
+    }
 
+	public override void _Ready() {
+		doorState.sceneChange += () => sceneManager.sceneTransition(sceneLocation);
 		if(singletonReference.insideBuilding) doorAnimations.Play("Default_Inside");
 		else doorAnimations.Play("Default_Outside");
-    }
 
-	public override void _Process(double delta) {
-		if(areaDetected && !doorOpened) { //DoorOpened - Flag boolean which will only make the door open once. 
-			if(inputManager.verticalButton() < 0.0f) {
-				initiateDoorOpen?.Invoke(); //playerController.currentState = PlayerState.Door;
-				doorAnimations.Play("Enter_Inside");
-				doorOpenSFX.Play();
-				playerController.readyToChangeScene += () => sceneManager.transitionToArea(sceneLocation);
-			} else return;
-			doorOpened = true; //Sets door open after opening. 
-		} 
-    }
-
-	public void rangeEntered(Node2D sidMarshall) {
-		if(sidMarshall is PlayerController) areaDetected = true;
-		else return;
+		playerDetection.BodyEntered += playerEntered; //Signal which checks if player enters in front of door.
+		playerDetection.BodyExited += playerExited; //Signal which checks if player exits the door.
+		//sceneManager.sceneChanged += doorClosed;
+		//GD.Print(areaDetected);
 	}
 
-	public void rangeExited(Node2D sidMarshall) {
-		if(sidMarshall is PlayerController) areaDetected = false;
+	private void playerEntered(Node2D player) {
+		if(player is PlayerController) {
+			areaDetected = true;
+			//GD.Print("Instance " + Name + " detected the player");
+		} else return;
 	}
 
-	/*private void instantiatePlayer() {
-		playerInstance.Instantiate(); //Creates a new instance of Sid Marshall.
-		GetTree().CurrentScene.AddChild(playerReference); //Adds Sid as a child to the current scene.
-		playerReference.Position = spawnLocation.Position;
-	}*/
+	private void playerExited(Node2D player) {
+		if(player is PlayerController) {
+			areaDetected = false;
+			//GD.Print(areaDetected);
+		} else return;
+	}
+
+	public void openDoor() {
+		if(!doorEntered) {
+			GD.Print("Instance " + Name + " is opening");
+			doorAnimations.Play("Enter_Inside"); 
+			doorOpenSFX.Play();
+		} doorEntered = true;
+	}
+
+	public void closeDoor() {
+		if(!doorEntered) {
+			doorCloseSFX.Play();
+			doorAnimations.PlayBackwards("Enter_Outside"); 
+			insideHouse?.Invoke(); //Signal emitted when animation is finished playing.	
+		} doorEntered = true;
+	}
 }
