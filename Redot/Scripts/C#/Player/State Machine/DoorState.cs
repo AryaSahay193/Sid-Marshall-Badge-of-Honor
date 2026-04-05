@@ -2,19 +2,20 @@ using Godot;
 using System;
 
 public partial class DoorState : ParentState {
+	private SceneManager sceneManager;
 	public event Action sceneChange;
+	private Tween colorChange;
 	private bool doorOpened = false;
 
     public override void _EnterTree() {
+		sceneManager = GetNode<SceneManager>("/root/SceneManager");
 		singletonReference = GetNode<GlobalData>("/root/GlobalData");
         singletonReference.doorState = this;
     }
 
 	public override void EnterState() {
 		playerController.debugText.Text = "[center]State: Door[/center]";
-		playerAnimations.Play("Door_Open");
-		playerAnimations.AnimationFinished += () => EnterDoorAnimation();
-		doorScript.insideHouse += ExitState; //Executes only once.
+		EnterDoorAnimation();
 	}
 	
 	public override void PhysicsUpdate(float delta) {
@@ -23,20 +24,24 @@ public partial class DoorState : ParentState {
 		SetProcessInput(false);
 	}
 
-	public override void ExitState() {
+	public void ExitDoorAnimation() {
 		playerAnimations.Play("Door_Exit_Pull");
-		playerAnimations.AnimationFinished += () => SetPhysicsProcess(true);
-		finiteStateMachine.ChangeStateTo("IdleState");
+		if(playerAnimations.IsPlaying()) {
+			colorChange = GetTree().CreateTween();
+			colorChange.TweenProperty(playerAnimations, "modulate", new Color("#ffffffff"), animationLengthOf("Door_Exit_Pull")); //Color goes back to normal.
+		} playerAnimations.AnimationFinished += () => finiteStateMachine.ChangeStateTo("IdleState"); 
+		SetPhysicsProcess(true);
 	}
 
 	private void EnterDoorAnimation() {
 		if(!doorOpened) {
-			playerAnimations.Play("Door_Enter_Push");
+			playerAnimations.Play("Door_Open");
 			doorScript.openDoor(); //Executes only once.
+			playerAnimations.Play("Door_Enter_Push");
 			if(playerAnimations.IsPlaying()) {
-				Tween colorChange = GetTree().CreateTween();
-				colorChange.TweenProperty(playerAnimations, "modulate", new Color("#2d1e2f"), animationLengthOf("Door_Enter_Push"));
-			} playerAnimations.AnimationFinished += () => sceneChange?.Invoke(); //Signal emitted to initiate scene change.
-		} doorOpened = true; 
+				colorChange = GetTree().CreateTween();
+				colorChange.TweenProperty(playerAnimations, "modulate", new Color("#2d1e2f"), animationLengthOf("Door_Enter_Push")); //Color changes to inside color.
+			} doorOpened = true;
+		} sceneManager.sceneTransition(doorScript.sceneLocation);
 	}
 }
