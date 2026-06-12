@@ -3,23 +3,27 @@
 class_name StateParent
 extends Node
 
-@onready var singletonReference : GlobalData = get_node("/root/GlobalData")
-@onready var inputManager : InputManager = get_node("/root/InputManager")
-@onready var playerController : PlayerScript = singletonReference.playerScript
-@onready var finiteStateMachine : FiniteStateMachine
+signal initiateStateChange(state : StateParent)
+@onready var playerReference : PlayerScript = get_node("/root/GameWorld/Player/SidMarshall")
+@onready var finiteStateMachine : FiniteStateMachine = get_node("/root/GameWorld/Player/SidMarshall/FiniteStateMachine")
 
-@export_group("Attributes")
-@export var animations : AnimatedSprite2D
-
-func _process(delta: float) -> void:
-	pass
+func _process(_delta: float) -> void: pass # For delgation purposes
+func _ready() -> void: pass # For delegation purposes
 
 func EnterState() : pass # Base method that executes code when entering the state.
-
 func ExitState() : pass # Base method that executes code when exiting the current state.
+func UpdateState(_delta : float) : pass # Base method that handles logic of the current state.
+func PhysicsUpdate(_delta : float) : pass # Base method that usually handles physics and time-based calculations rather than frame-based.
+func HandleInput(_event : InputEvent) : pass # Base method that handles input.
 
-func UpdateState(delta : float) : pass # Base method that handles logic of the current state.
+func playAnimationOnce(animationName : String) :
+	var animationPlaying : bool = playerReference.playerAnimations.is_playing()
+	if animationPlaying :
+		playerReference.playerAnimations.play(animationName)
+		animationPlaying = !animationPlaying
 
-func PhysicsUpdate(delta : float) : pass # Base method that usually handles physics and time-based calculations rather than frame-based.
-
-func HandleInput(event : InputEvent) : pass # Base method that handles input.
+func pauseInputOnAnimation() :
+	if playerReference.playerAnimations.is_playing() :
+		set_physics_process(false)
+		set_process_input(false)
+	else : set_process_input(true)
