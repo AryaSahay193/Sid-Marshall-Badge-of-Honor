@@ -10,7 +10,7 @@ func _ready() -> void:
 		if node is StateParent :
 			stateList[node.name.to_lower()] = node
 			node.initiateStateChange.connect(changeToState)
-
+	
 	if startingState :
 		startingState.EnterState()
 		currentState = startingState
@@ -18,6 +18,7 @@ func _ready() -> void:
 # Delegates the methods from BaseStateClass to methods commonly used.
 func _process(delta : float) -> void : 
 	if currentState : currentState.UpdateState(delta)
+	print(currentState.name)
 
 func _physics_process(delta : float) -> void : 
 	if currentState : currentState.PhysicsUpdate(delta)
@@ -27,6 +28,6 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func changeToState(stateName : String) :
 	var nextState = stateList.get(stateName.to_lower())
-	if currentState :
-		currentState.ExitState()
+	if currentState : currentState.ExitState()
 	nextState.EnterState()
+	currentState = nextState
