@@ -2,22 +2,18 @@
 class_name PlayerIdle
 extends StateParent
 
-func EnterState() :
-	playerController.debugText.text = "[center]State: Idle[/center]"
-	playerController.playerAnimations.play("Idle")
-
 func UpdateState(_delta : float) :
-	playerController.playerAnimations.play("Idle")
-	if playerController.velocity.y > 0.0 : finiteStateMachine.StateTransition("FallState")
-	playerController.flipCharacter()
+	flipCharacter()
+	playerAnimations.play("Idle")
+	if playerReference.is_on_floor() && !playerReference.is_on_wall() :
+		if InputManager.horizontalButton() != 0 : finiteStateMachine.changeToState("Move") # Change to Move State.
+		# elif InputManager.crouchButton() : finiteStateMachine.changeToState("Crouch") # Change to Crouch State.
+	else : if playerReference.velocity.y > 0.0 : finiteStateMachine.changeToState("Fall") # Change to Fall State.
 
 func PhysicsUpdate(_delta : float) :
-	playerController.velocity = Vector2(0.0, playerController.Velocity.y)
+	playerReference.velocity = Vector2(0.0, playerReference.velocity.y)
 
-
-func HandleInput(_event : InputEvent) : # Changes states if they involve button presses.
-	if playerController.is_on_floor_only() :
-		if inputManager.lightAttackButton() || inputManager.heavyAttackButton() : finiteStateMachine.StateTransition("AttackCombo1")
-		else : if inputManager.horizontalButton() != 0.0 : finiteStateMachine.StateTransition("MoveState")
-		else : if inputManager.crouchButton() : finiteStateMachine.StateTransition("CrouchState")
-		else : if inputManager.jumpButton() : finiteStateMachine.StateTransition("JumpState")
+func HandleInput(_event : InputEvent) : # One-shot actions
+	if playerReference.is_on_floor_only() :
+		if InputManager.jumpButton() : finiteStateMachine.changeToState("Jump")
+		# elif InputManager.lightAttackButton() || InputManager.heavyAttackButton() : finiteStateMachine.changeToState("Attack_1")
